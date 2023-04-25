@@ -1,6 +1,8 @@
 {
     "cSpell.words": [
-        "emgrep"
+        "dataloaders",
+        "emgrep",
+        "restimulus"
     ],
     "autoDocstring.docstringFormat": "google",
     "editor.formatOnSave": true,

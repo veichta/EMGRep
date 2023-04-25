@@ -46,8 +46,10 @@ class Dataloader:
 
     def __init__(
         self,
-        window_size: int,
-        stride: int = 1,
+        sec_len: int,
+        block_len: int,
+        block_stride: int,
+        positives: str = "self",
         batch_size: int = 1,
         num_workers: int = 4,
         days: list = list(range(1, 6)),
@@ -59,11 +61,13 @@ class Dataloader:
         """Initialize the dataloader.
 
         Args:
-            window_size (int): Window size taken from the recording.
-            stride (int, optional): Stride of the window. Defaults to 1.
+            sec_len (int): Length of each sequence.
+            block_len (int): Length of each block in the sequence.
+            block_stride (int): Stride of the blocks in the sequence.
+            positives (str, optional): Whether to use self or subject positives. Defaults to "self".
             batch_size (int, optional): Batch size for the dataloader. Defaults to 1.
-            num_workers (int): Number of workers for the dataloader. Defaults to 4.
-            days (list, optional): Days to load. Defaults to range(1, 6).
+            num_workers (int, optional): Number of workers for the dataloader. Defaults to 4.
+            days (list, optional): Days to load. Defaults to list(range(1, 6)).
             times (Tuple[int, int], optional): Times to load. Defaults to (1, 2).
             rms_window (int, optional): Window size for the RMS. Defaults to 1.
             rms_stride (int, optional): Stride for the RMS. Defaults to 1.
@@ -71,11 +75,15 @@ class Dataloader:
         """
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.window_size = window_size
+        self.sec_len = sec_len
+        self.block_len = block_len
+        self.block_stride = block_stride
+        self.positives = positives
+        self.batch_size = batch_size
+        self.num_workers = num_workers
         self.days = days
         self.times = times
         self.rms_window = rms_window
-        self.stride = stride
         self.rms_stride = rms_stride
         self.rms_padding = rms_padding
 
@@ -131,13 +139,15 @@ class Dataloader:
             for time in self.times:
                 f = get_recording(subject=subject, day=day, time=time, data_path=data_path)
                 datasets.append(
-                    # TODO: update this
+                    # TODO: update this if needed
                     SingleFileEMGDataLoader(
                         f,
-                        sec_len=self.window_size,
+                        sec_len=self.sec_len,
+                        positives=self.positives,
+                        block_len=self.block_len,
+                        block_stride=self.block_stride,
                         target_transform=get_end_label,
-                        window_size=self.rms_window,
-                        stride=self.stride,
+                        rms_window=self.rms_window,
                         rms_stride=self.rms_stride,
                         rms_padding=self.rms_padding,
                     )
