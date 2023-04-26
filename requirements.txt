@@ -1,4 +1,5 @@
 numpy 
 scikit-learn 
 matplotlib 
-pandas 
+pandas
+info-nce-pytorch
