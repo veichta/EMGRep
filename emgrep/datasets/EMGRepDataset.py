@@ -145,7 +145,10 @@ class EMGRepDataset(Dataset):
             idx (int): Index of the item.
 
         Returns:
-            tuple[torch.Tensor, torch.Tensor, torch.Tensor]: EMG, stimulus and info.
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor]: EMG, stimulus and info. Note that EMG
+            is of shape (batch_size, 2 (or 1), num_blocks, block_size, num_sensors) and stimulus is
+            of shape (batch_size, 2 (or 1), num_blocks, block_size, 1). Info is of shape
+            (batch_size, 2 (or 1), 4).
         """
         emg_blocks = self._seq_to_blocks(self.emg[idx])
         stimulus_blocks = self._seq_to_blocks(self.stimulus[idx])
