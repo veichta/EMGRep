@@ -45,9 +45,9 @@ class CPCEncoder(nn.Module):
         """Forward pass.
 
         Args:
-            x (torch.Tensor): Input tensor of shape (N, K, num_blocks, F, block_len).
+            x (torch.Tensor): Input tensor of shape (N, K, num_blocks, block_len, F).
         """
-        N, K, num_blocks, F, block_len = x.shape
+        N, K, num_blocks, block_len, F = x.shape
         x = x.view(N * K * num_blocks, F, block_len)
 
         x = self.convs(x)
