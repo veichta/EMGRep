@@ -62,6 +62,12 @@ def parse_args() -> argparse.Namespace:
         default=10,
         help="Number of epochs for training classifier.",
     )
+    parser.add_argument(
+        "--n_classes",
+        type=int,
+        default=10,
+        help="Number of classes classifier.",
+    )
 
     # LOGGING
     parser.add_argument(

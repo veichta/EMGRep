@@ -3,3 +3,4 @@ scikit-learn
 matplotlib 
 pandas
 info-nce-pytorch
+torchmetrics

@@ -31,8 +31,10 @@ class RepresentationDataset(Dataset):
         Returns:
             torch.Tensor: Extracted representations.
         """
-        # TODO: Extract representations
-        pass
+        # @TODO test
+        # @TODO where do we add the labels? Do they need resampling?
+        with torch.no_grad():
+            return zip(*[(model(x), y) for x, y, _ in dataloader])
 
     def __len__(self) -> int:
         """Return the length of the dataset."""
