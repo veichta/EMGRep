@@ -5,6 +5,8 @@ import datetime
 import logging
 import os
 
+from emgrep.utils.args import parse_args
+
 
 def setup() -> argparse.Namespace:
     """Setup arguments and logging.
@@ -21,43 +23,6 @@ def setup() -> argparse.Namespace:
         logging.debug(f"\t{arg}: {val}")
 
     return args
-
-
-def parse_args() -> argparse.Namespace:
-    """Parse command line arguments.
-
-    Returns:
-        argparse.Namespace: Parsed arguments.
-    """
-    parser = argparse.ArgumentParser(
-        description="emgrep: Representation learning framework of emp data for hand "
-        + "movement recognition"
-    )
-    # DATA
-    parser.add_argument(
-        "--data",
-        type=str,
-        default="data",
-        help="Path to data directory.",
-    )
-
-    # MODEL
-
-    # TRAINING
-
-    # LOGGING
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debug mode.",
-    )
-    parser.add_argument(
-        "--log_dir",
-        type=str,
-        default=None,
-        help="Path to log directory.",
-    )
-    return parser.parse_args()
 
 
 def setup_logging(args: argparse.Namespace):
