@@ -1,4 +1,4 @@
-"""Implementation of the infoNCE loss function for CPC."""
+"""Implementation of the InfoNCE loss function for CPC."""
 
 import torch
 import torch.nn as nn
@@ -12,9 +12,10 @@ class CPCCriterion(nn.Module):
         """Initialize CPCCriterion.
 
         Args:
-            k (int): Number of steps to look ahead for positive sampling.
+            k (int): Number of steps to look ahead for positive sampling. Must be > 0.
         """
         super(CPCCriterion, self).__init__()
+        assert k > 0, f"k must be > 0, but got {k}"
         self.k = k
         self.infonce = InfoNCE()
 
@@ -27,6 +28,9 @@ class CPCCriterion(nn.Module):
 
         Returns:
             torch.Tensor: _description_
+
+        Notes:
+            - z and c must have the same shape, i.e., zSize == cSize is required.
         """
         zBatchSize, zDim, zSeqLen = z.shape
         cBatchSize, cDim, cSeqLen = c.shape
@@ -42,11 +46,5 @@ class CPCCriterion(nn.Module):
         zPos = zPos.permute(0, 2, 1)  # (batchSize, seqLen-k, zSize)
         zPos = zPos.reshape(-1, zDim)  # (batchSize * (seqLen-k), zSize)
 
-        # negative sampling: shuffle z vectors
-        zNeg = z[:, :, self.k :]  # (batchSize, zSize, seqLen-k)
-        zNeg = zNeg.permute(0, 2, 1)  # (batchSize, seqLen-k, zSize)
-        zNeg = zNeg.reshape(-1, zDim)  # (batchSize * (seqLen-k), zSize)
-        zNeg = zNeg[torch.randperm(zNeg.shape[0])]  # shuffle zNeg
-
         # compute loss
-        return self.infonce(zPos, cPos, zNeg)
+        return self.infonce(cPos, zPos, zPos)
