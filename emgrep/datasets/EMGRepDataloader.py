@@ -1,9 +1,11 @@
 """Dataloader for the EMGRep project."""
 
+import logging
 from pathlib import Path
 from typing import List, Tuple
 
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from emgrep.datasets.EMGRepDataset import EMGRepDataset
 from emgrep.utils.io import get_recording
@@ -42,7 +44,7 @@ class EMGRepDataloader:
         super().__init__()
         self.data_path = data_path
         self.data_selection = data_selection
-        if data_selection == []:
+        if not data_selection:
             self.data_selection = [
                 (subject, day, time)
                 for subject in [1, 2, 3, 7, 8, 9, 10]
@@ -61,17 +63,11 @@ class EMGRepDataloader:
 
     def _create_dataset(self) -> EMGRepDataset:
         """Create the dataset."""
-        mat_files = []
-        for subject, day, time in self.data_selection:
-            mat_files.append(
-                get_recording(
-                    subject=subject,
-                    day=day,
-                    time=time,
-                    data_path=str(self.data_path),
-                )
-            )
-
+        logging.info("Loading data...")
+        mat_files = [
+            get_recording(subject=subject, day=day, time=time, data_path=str(self.data_path))
+            for subject, day, time in tqdm(self.data_selection)
+        ]
         return EMGRepDataset(
             mat_files=mat_files,
             positive_mode=self.positive_mode,

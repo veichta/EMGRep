@@ -1,40 +1,60 @@
 """Implementation of CPC model."""
 
+import math
+
 import torch.nn as nn
 
 
 class CPCEncoder(nn.Module):
-    """Encoder for CPC model."""
+    """Encoder network for CPC."""
 
-    def __init__(self, sizeHidden: int = 512):
-        """Initialize the encoder.
+    def __init__(self, in_channels: int, hidden_dim: int):
+        """Encoder network for encoding a sequence of blocks into a single vector.
 
         Args:
-            sizeHidden (int, optional): Size of the hidden layer. Defaults to 512.
+            in_channels (int): Number of input channels.
+            hidden_dim (int): Feature dimension of the output vector for each block. Will be
+            rounded to the next power of 2.
         """
-        super(CPCEncoder, self).__init__()
+        super().__init__()
 
-        self.module = nn.Sequential(
-            nn.Conv1d(10, sizeHidden, 10, stride=5, padding=3),
-            nn.BatchNorm1d(sizeHidden),
-            nn.ReLU(),
-            nn.Conv1d(sizeHidden, sizeHidden, 8, stride=4, padding=2),
-            nn.BatchNorm1d(sizeHidden),
-            nn.ReLU(),
-            nn.Conv1d(sizeHidden, sizeHidden, 4, stride=2, padding=1),
-            nn.BatchNorm1d(sizeHidden),
-            nn.ReLU(),
-            nn.Conv1d(sizeHidden, sizeHidden, 4, stride=2, padding=1),
-            nn.BatchNorm1d(sizeHidden),
-            nn.ReLU(),
-            nn.Conv1d(sizeHidden, sizeHidden, 4, stride=2, padding=1),
-            nn.BatchNorm1d(sizeHidden),
-            nn.ReLU(),
+        max_power = int(math.log(hidden_dim, 2))
+        result = [in_channels] + [2**f for f in range(5, max_power + 1)]
+
+        self.convs = nn.Sequential(
+            *[
+                nn.Sequential(
+                    nn.Conv1d(in_channels, in_channels, kernel_size=3, padding=1),
+                    nn.ReLU(),
+                    nn.BatchNorm1d(in_channels),
+                    nn.MaxPool1d(kernel_size=2, padding=1),
+                    nn.Conv1d(in_channels, out_channels, kernel_size=3, padding=1),
+                    nn.ReLU(),
+                    nn.BatchNorm1d(out_channels),
+                    nn.MaxPool1d(kernel_size=2, padding=1),
+                )
+                for in_channels, out_channels in zip(result[:-1], result[1:])
+            ]
         )
 
+        # output_conv is used to map the time dimension to a single value
+        # -> each block will be mapped to a feature with dimension hidden_dim
+        self.output_conv = nn.AdaptiveAvgPool1d(1)
+
     def forward(self, x):
-        """Forward pass."""
-        x = self.module(x)
+        """Forward pass.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (N, K, num_blocks, F, block_len).
+        """
+        N, K, num_blocks, F, block_len = x.shape
+        x = x.view(N * K * num_blocks, F, block_len)
+
+        x = self.convs(x)
+        x = self.output_conv(x)
+
+        x = x.view(N, K, num_blocks, -1)
+
         return x
 
 

@@ -164,4 +164,8 @@ class EMGRepDataset(Dataset):
             stimulus = np.expand_dims(stimulus_blocks, 0)
             info = np.expand_dims(info, 0)
 
-        return torch.from_numpy(emg), torch.from_numpy(stimulus), torch.from_numpy(info)
+        return (
+            torch.from_numpy(emg).permute(0, 1, 3, 2),
+            torch.from_numpy(stimulus),
+            torch.from_numpy(info),
+        )
