@@ -3,21 +3,25 @@
 import datetime
 import logging
 import time
+from argparse import Namespace
 
+from emgrep.datasets.EMGRepDataloader import get_dataloader
 from emgrep.datasets.RepresentationsDataset import RepresentationDataset
 from emgrep.train_classifier import train_classifier
 from emgrep.train_cpc import train_cpc
-from emgrep.utils.utils import setup
+from emgrep.utils.utils import cleanup, setup
 from emgrep.visualizations import visualize_embeddings
 
 
-def main():
+def main(args: Namespace):
     """Main function."""
-    args = setup()
     start = time.time()
 
+    # TODO: Load data
+    dataloaders = get_dataloader(args)
+
     # TODO: Train model
-    model, dataloaders = train_cpc(args)
+    model = train_cpc(dataloaders, args)
 
     # TODO: Extract representations
     representations = {
@@ -36,6 +40,13 @@ def main():
     elapsed = datetime.timedelta(seconds=end - start)
     logging.info(f"Elapsed time: {elapsed}")
 
+    cleanup(args)
+
 
 if __name__ == "__main__":
-    main()
+    args = setup()
+    try:
+        main(args)
+    except (Exception, KeyboardInterrupt) as e:
+        cleanup(args)
+        raise e

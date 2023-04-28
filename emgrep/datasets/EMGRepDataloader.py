@@ -1,8 +1,9 @@
 """Dataloader for the EMGRep project."""
 
 import logging
+from argparse import Namespace
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -131,3 +132,105 @@ class EMGRepDataloader:
             )
 
         return train_loader, val_loader, test_loader
+
+
+def get_dataloader(args: Namespace) -> Dict[str, DataLoader]:
+    """Get the dataloaders.
+
+    Args:
+        args (Namespace): Command line arguments.
+
+    Returns:
+        Dict[str, DataLoader]: Train, val, and test dataloaders.
+    """
+    train_split, val_split, test_split = get_split(args)
+
+    dl = EMGRepDataloader(
+        data_path=args.data,
+        train_data=train_split,
+        val_data=val_split,
+        test_data=test_split,
+        positive_mode=args.positive_mode,
+        seq_len=args.seq_len,
+        seq_stride=args.seq_stride,
+        block_len=args.block_len,
+        block_stride=args.block_stride,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+    )
+
+    train_dl, val_dl, test_dl = dl.get_dataloaders()
+
+    return {
+        "train": train_dl,
+        "val": val_dl,
+        "test": test_dl,
+    }
+
+
+def get_split(
+    args: Namespace,
+) -> Tuple[List[Tuple[int, int, int]], List[Tuple[int, int, int]], List[Tuple[int, int, int]]]:
+    """Get the train, val, and test splits.
+
+    Args:
+        args (Namespace): Command line arguments.
+
+    Raises:
+        ValueError: If the positive mode is not recognized.
+
+    Returns:
+        List[Tuple[int, int, int]]: Train, val, and test splits.
+    """
+    subject_range = range(1, 2)  # range(1, 11)
+    day_range = range(1, 4)  # range(1, 6)
+    time_range = [1, 2]
+
+    if args.positive_mode in ["none", "session", "subject"]:
+        assert args.val_idx in day_range, f"Invalid val index: {args.val_idx}"
+        assert args.test_idx in day_range, f"Invalid test index: {args.test_idx}"
+        train_split = [
+            (subject, day, time)
+            for subject in subject_range
+            for day in day_range
+            for time in time_range
+            if day not in [args.val_idx, args.test_idx]
+        ]
+        val_split = [
+            (subject, day, time)
+            for subject in subject_range
+            for day in [args.val_idx]
+            for time in time_range
+        ]
+        test_split = [
+            (subject, day, time)
+            for subject in subject_range
+            for day in [args.test_idx]
+            for time in time_range
+        ]
+    elif args.positive_mode == "label":
+        assert args.val_idx in subject_range, f"Invalid val index: {args.val_idx}"
+        assert args.test_idx in subject_range, f"Invalid test index: {args.test_idx}"
+        train_split = [
+            (subject, day, time)
+            for subject in subject_range
+            for day in day_range
+            for time in time_range
+            if subject not in [args.val_idx, args.test_idx]
+        ]
+        val_split = [
+            (subject, day, time)
+            for subject in [args.val_idx]
+            for day in day_range
+            for time in time_range
+        ]
+        test_split = [
+            (subject, day, time)
+            for subject in [args.test_idx]
+            for day in day_range
+            for time in time_range
+        ]
+    else:
+        raise ValueError(f"Invalid positive mode: {args.positive_mode}")
+
+    return train_split, val_split, test_split

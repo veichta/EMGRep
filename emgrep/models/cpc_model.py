@@ -75,14 +75,18 @@ class CPCAR(nn.Module):
 
     def forward(self, x):
         """Encode a batch of sequences."""
+        N, K, num_blocks, H = x.shape
+        x = x.view(N * K, num_blocks, H)
         x, _ = self.gru(x)  # discard final hidden state
+
+        x = x.view(N, K, num_blocks, -1)
         return x
 
 
 class CPCModel(nn.Module):
     """CPC model."""
 
-    def __init__(self, encoder, ar):
+    def __init__(self, encoder: CPCEncoder, ar: CPCAR):
         """Initialize the CPC model.
 
         Args:
@@ -92,13 +96,11 @@ class CPCModel(nn.Module):
         super(CPCModel, self).__init__()
         self.gEnc = encoder
         self.gAR = ar
-        self.gEnc.double()
-        self.gAR.double()
+        # self.gEnc.double()
+        # self.gAR.double()
 
     def forward(self, batch):
         """Forward pass."""
-        batch = batch.permute(0, 2, 1)  # (batch, channels, time)
         z = self.gEnc(batch)
-        z = z.permute(0, 2, 1)  # (batch, time, channels)
         c = self.gAR(z)
         return z, c
