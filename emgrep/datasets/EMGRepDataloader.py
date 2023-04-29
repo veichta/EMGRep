@@ -186,9 +186,9 @@ def get_split(
     Returns:
         List[Tuple[int, int, int]]: Train, val, and test splits.
     """
-    subject_range = range(1, 11)
-    day_range = range(1, 6)
-    time_range = [1, 2]
+    subject_range = range(1, args.n_subjects + 1)
+    day_range = range(1, args.n_days + 1)
+    time_range = range(1, args.n_times + 1)
 
     if args.positive_mode in ["none", "session", "subject"]:
         assert args.val_idx in day_range, f"Invalid val index: {args.val_idx}"

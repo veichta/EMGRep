@@ -36,6 +36,24 @@ def parse_args() -> argparse.Namespace:
 
     # DATA LOADER
     parser.add_argument(
+        "--n_subjects",
+        type=int,
+        default=10,
+        help="Number of subjects to use.",
+    )
+    parser.add_argument(
+        "--n_days",
+        type=int,
+        default=5,
+        help="Number of days to use.",
+    )
+    parser.add_argument(
+        "--n_sessions",
+        type=int,
+        default=2,
+        help="Number of sessions to use.",
+    )
+    parser.add_argument(
         "--positive_mode",
         type=str,
         default="none",
