@@ -214,6 +214,7 @@ def test(
     """
     pbar = tqdm(dataloader, desc=f"Testing {epoch+1} / {args.epochs_cpc}", ncols=100)
     losses = []
+    model.to(args.device)
     with torch.no_grad():
         for x, y, _ in pbar:
             out = model(x.to(args.device))
