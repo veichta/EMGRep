@@ -108,7 +108,7 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     ax.set_title("Training and Validation Loss")
     ax.legend()
 
-    plt.savefig(os.path.join(args.output_dir, "cpc_loss.png"))
+    plt.savefig(os.path.join(args.log_dir, "cpc_loss.png"))
     fig.clear()
 
     return cpc_model
