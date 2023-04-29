@@ -72,6 +72,13 @@ class CPCAR(nn.Module):
         super(CPCAR, self).__init__()
 
         self.gru = nn.GRU(dimEncoded, dimOutput, num_layers=numLayers, batch_first=True)
+        # initialize gru
+        for layer_p in self.gru._all_weights:
+            for p in layer_p:
+                if "weight" in p:
+                    nn.init.kaiming_normal_(
+                        self.gru.__getattr__(p), mode="fan_out", nonlinearity="relu"
+                    )
 
     def forward(self, x):
         """Encode a batch of sequences."""
@@ -96,8 +103,6 @@ class CPCModel(nn.Module):
         super(CPCModel, self).__init__()
         self.gEnc = encoder
         self.gAR = ar
-        # self.gEnc.double()
-        # self.gAR.double()
 
     def forward(self, batch):
         """Forward pass."""
