@@ -91,7 +91,7 @@ class DownstreamTuner:
             for x, y in dataloader:
                 optimizer.zero_grad()
                 # @TODO how do we want to handle sequences? Curr: Just flatten
-                x = torch.reshape(x.float().to(self.device), (-1, self.encoding_size))
+                x = torch.reshape(x.to(self.device), (-1, self.encoding_size))
                 y = torch.reshape(y.long().to(self.device), (-1,))
                 outputs = self.head(x)
                 loss = criterion(outputs, y)
@@ -123,7 +123,7 @@ class DownstreamTuner:
             self.head.to(self.device)
             return torch.cat(
                 [
-                    self.head(torch.reshape(x.float().to(self.device), (-1, self.encoding_size)))
+                    self.head(torch.reshape(x.to(self.device), (-1, self.encoding_size)))
                     for x, y in dataloader
                 ],
                 dim=0,
