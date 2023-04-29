@@ -17,7 +17,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--data",
         type=str,
-        default="data",
+        default="data/01_raw",
         help="Path to data directory.",
     )
     parser.add_argument(
@@ -81,7 +81,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=3,  # weird prime number for debug purposes
+        default=64,
         help="Batch size for dataloader.",
     )
     parser.add_argument(
@@ -121,13 +121,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--epochs_cpc",
         type=int,
-        default=10,
+        default=100,
         help="Number of epochs for training CPC.",
     )
     parser.add_argument(
         "--lr_cpc",
         type=float,
-        default=1e-1,
+        default=1e-2,
         help="Learning rate for training CPC.",
     )
     parser.add_argument(

@@ -1,6 +1,7 @@
 """Implementation of the training loop for CPC model."""
 
 import datetime
+import itertools
 import logging
 import os
 import time
@@ -48,12 +49,11 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
 
     logging.info("Training the model...")
 
-    optimizer = torch.optim.Adam(
-        cpc_model.parameters(), lr=args.lr_cpc, weight_decay=args.weight_decay_cpc
-    )
+    parameters = itertools.chain(cpc_model.parameters(), criterion.parameters())
+    optimizer = torch.optim.Adam(parameters, lr=args.lr_cpc, weight_decay=args.weight_decay_cpc)
     # reduce on plateau
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=10, verbose=True
+        optimizer, mode="min", factor=0.1, patience=5, verbose=True
     )
 
     # TODO: Train model
