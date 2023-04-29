@@ -152,6 +152,8 @@ def train_one_epoch_cpc(
     pbar = tqdm(dataloader, desc=f"Epoch {epoch+1} / {args.epochs_cpc}", ncols=100)
     losses = []
     model.to(args.device)
+    criterion.to(args.device)
+    model.train()
     for x, _, _ in pbar:
         optimizer.zero_grad()
         out = model(x.to(args.device))
@@ -192,6 +194,8 @@ def validate_cpc(
     pbar = tqdm(dataloader, desc=f"Val Epoch {epoch+1} / {args.epochs_cpc}", ncols=100)
     losses = []
     model.to(args.device)
+    criterion.to(args.device)
+    model.eval()
     with torch.no_grad():
         for x, y, _ in pbar:
             out = model(x.to(args.device))
@@ -229,6 +233,8 @@ def test(
     pbar = tqdm(dataloader, desc=f"Testing {epoch+1} / {args.epochs_cpc}", ncols=100)
     losses = []
     model.to(args.device)
+    criterion.to(args.device)
+    model.eval()
     with torch.no_grad():
         for x, y, _ in pbar:
             out = model(x.to(args.device))
