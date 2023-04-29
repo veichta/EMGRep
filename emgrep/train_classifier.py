@@ -143,13 +143,13 @@ class DownstreamTuner:
         y = torch.flatten(torch.cat([_y for x, _y in dataloader], dim=0))
         return {
             "accuracy": torchmetrics.Accuracy(task="multiclass", num_classes=self.n_classes)(
-                torch.argmax(pred, axis=1), y.long()
+                torch.argmax(pred, axis=1).to(self.device), y.long().to(self.device)
             ).item(),
             "roc_auc": torchmetrics.AUROC(task="multiclass", num_classes=self.n_classes)(
-                pred, y.long()
+                pred.to(self.device), y.long().to(self.device)
             ).item(),
             "f1": torchmetrics.F1Score(task="multiclass", num_classes=self.n_classes)(
-                torch.argmax(pred, axis=1), y.long()
+                torch.argmax(pred, axis=1).to(self.device), y.long().to(self.device)
             ).item(),
         }
 
