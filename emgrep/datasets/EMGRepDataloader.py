@@ -182,8 +182,8 @@ def get_split(
     Returns:
         List[Tuple[int, int, int]]: Train, val, and test splits.
     """
-    subject_range = range(1, 2)  # range(1, 11)
-    day_range = range(1, 4)  # range(1, 6)
+    subject_range = range(1, 11)
+    day_range = range(1, 6)
     time_range = [1, 2]
 
     if args.positive_mode in ["none", "session", "subject"]:
