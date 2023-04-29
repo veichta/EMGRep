@@ -77,7 +77,7 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
         )
         lr_scheduler.step(metrics["val"][epoch]["loss"])
 
-        logging.info(f"Epoch {epoch+1} / {args.epochs_cpc+1}")
+        logging.info(f"Epoch {epoch+1} / {args.epochs_cpc}")
         logging.info(f"Train loss: {metrics['train'][epoch]['loss']:.4f}")
         logging.info(f"Val loss:   {metrics['val'][epoch]['loss']:.4f}")
 
@@ -138,12 +138,12 @@ def train_one_epoch_cpc(
     """
     pbar = tqdm(dataloader, desc=f"Epoch {epoch+1} / {args.epochs_cpc}", ncols=100)
     losses = []
-    for x, y, _ in pbar:
+    for x, _, _ in pbar:
+        optimizer.zero_grad()
         out = model(x.to(args.device))
         # loss = criterion(out, y.to(args.device))
         loss = criterion(*out)
 
-        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
