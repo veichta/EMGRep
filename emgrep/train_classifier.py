@@ -10,6 +10,7 @@ import numpy as np
 import torch
 import torchmetrics
 from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
 
 
 class LinearClassificationHead(torch.nn.Module):
@@ -50,13 +51,16 @@ class DownstreamTuner:
             epochs (int): number of epochs to train for
         """
         self.n_classes = n_classes
+        self.encoding_size = encoding_size
         self.head = LinearClassificationHead(encoding_size, n_classes)
         self.lr = lr
         self.epochs = epochs
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def fit(self, dataloader: DataLoader) -> DataLoader:
-        """Parse command line arguments.
+        """Fits a linear logistic regression model on the given training set for a fixed number of epochs.
+
+        @ TODO: Do we want the full [train until cvg w.r.t val set] setup?
         Args:
             dataloaders (DataLoader]): a dataloader delivering tuples of type (embed_1d, class_label).
         Returns:
@@ -72,20 +76,23 @@ class DownstreamTuner:
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.99)
         losses = []
 
-        for epoch in range(self.epochs):
-            ep_loss = 0
-            for i, (x, y) in enumerate(dataloader):
+        for epoch in tqdm(range(self.epochs), desc="Training Epoch"):
+            ep_loss = []
+            for x, y in dataloader:
                 optimizer.zero_grad()
-                outputs = self.head(x.float().to(self.device))
-                loss = criterion(outputs, y.long().to(self.device))
+                # @TODO how do we want to handle sequences? Curr: Just flatten
+                x = torch.reshape(x.float().to(self.device), (-1, self.encoding_size))
+                y = torch.reshape(y.long().to(self.device), (-1,))
+                outputs = self.head(x)
+                loss = criterion(outputs, y)
                 loss.backward()
                 optimizer.step()
                 scheduler.step()
 
-                ep_loss += loss.item()
+                ep_loss.append(loss.item())
 
-            logging.info("epoch {}, loss {}".format(epoch, ep_loss / i))
-            losses.append(ep_loss / i)
+            logging.info("epoch {}, loss {}".format(epoch, np.mean(ep_loss)))
+            losses.append(np.mean(ep_loss))
 
         plt.title("training loss")
         plt.plot(losses)
@@ -102,7 +109,13 @@ class DownstreamTuner:
         """
         with torch.no_grad():
             self.head.to(self.device)
-            return torch.cat([self.head(x.float().to(self.device)) for x, y in dataloader], dim=0)
+            return torch.cat(
+                [
+                    self.head(torch.reshape(x.float().to(self.device), (-1, self.encoding_size)))
+                    for x, y in dataloader
+                ],
+                dim=0,
+            )
 
     def score(self, dataloader: DataLoader) -> dict[str, float]:
         """Parse command line arguments.
@@ -112,17 +125,19 @@ class DownstreamTuner:
             dict[str, float]: test metrics by name. Example: res["accuracy"].
         """
         pred = self.predict(dataloader)
-        y = torch.cat([_y for x, _y in dataloader], dim=0)
-        scores = {
+        # @TODO how do we want to handle sequences? Curr: Just flatten
+        y = torch.flatten(torch.cat([_y for x, _y in dataloader], dim=0))
+        return {
             "accuracy": torchmetrics.Accuracy(task="multiclass", num_classes=self.n_classes)(
                 torch.argmax(pred, axis=1), y.long()
             ).item(),
             "roc_auc": torchmetrics.AUROC(task="multiclass", num_classes=self.n_classes)(
                 pred, y.long()
             ).item(),
+            "f1": torchmetrics.F1Score(task="multiclass", num_classes=self.n_classes)(
+                torch.argmax(pred, axis=1), y.long()
+            ).item(),
         }
-        logging.info(scores)
-        return scores
 
 
 def train_classifier(
@@ -138,14 +153,21 @@ def train_classifier(
     logging.info("Training the classifier...")
     start = time.time()
 
-    # TODO: Initialize
-    # model = None
-    # criterion = None
-
-    print(args)
     tuner = DownstreamTuner(
-        n_classes=args.n_classes, encoding_size=args.encoding_size, epochs=args.epochs
+        n_classes=args.n_classes, encoding_size=args.ar_dim, epochs=args.epochs_classifier
     )
+
+    tuner.fit(representations["train"])
+    # y_pred = np.argmax(tuner.predict("test_dl").numpy(), axis=1)
+
+    res = {
+        "train": tuner.score(dataloader=representations["train"]),
+        "val": tuner.score(dataloader=representations["val"]),
+        "test": tuner.score(dataloader=representations["test"]),
+    }
+
+    logging.info("Classification results:")
+    logging.info(str(res))
 
     # TODO: Train classifier
 
