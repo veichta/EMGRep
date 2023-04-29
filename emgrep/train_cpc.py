@@ -55,6 +55,10 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.1, patience=5, verbose=True
     )
+    # early stopping init
+    best_loss = np.inf
+    epochs_no_improve = 0
+    patience = 10
 
     # TODO: Train model
     metrics: Dict[str, Any] = {"train": {}, "val": {}, "test": {}}
@@ -81,6 +85,16 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
         logging.info(f"Val loss:   {metrics['val'][epoch]['loss']:.4f}")
 
         save_checkpoint_cpc(model=cpc_model, epoch=epoch, metrics=metrics["val"], args=args)
+
+        if metrics["val"][epoch]["loss"] < best_loss:
+            best_loss = metrics["val"][epoch]["loss"]
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+
+        if epochs_no_improve == patience:  # TODO: parametrize patience
+            logging.info(f"Early stopping at epoch {epoch+1}")
+            break
 
     # test model
     # metrics["test"] = validate_cpc(
