@@ -247,3 +247,4 @@ def save_checkpoint_cpc(
     if epoch == best_epoch:
         logging.info(f"Saving model checkpoint at epoch {epoch+1}...")
         torch.save(model.to("cpu").state_dict(), os.path.join(model_dir, "best_model.pt"))
+        model.to(args.device)
