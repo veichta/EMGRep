@@ -25,9 +25,9 @@ def main(args: Namespace):
 
     # TODO: Extract representations
     representations = {
-        "train": RepresentationDataset(model=model, dataloader=dataloaders["train"]),
-        "val": RepresentationDataset(model=model, dataloader=dataloaders["val"]),
-        "test": RepresentationDataset(model=model, dataloader=dataloaders["test"]),
+        "train": RepresentationDataset(model=model, dataloader=dataloaders["train"], args=args),
+        "val": RepresentationDataset(model=model, dataloader=dataloaders["val"], args=args),
+        "test": RepresentationDataset(model=model, dataloader=dataloaders["test"], args=args),
     }
 
     # TODO: Evaluate representations
