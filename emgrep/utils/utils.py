@@ -49,6 +49,9 @@ def setup_logging(args: argparse.Namespace):
         filename=log_file,
     )
 
+    # Suppress logging from other modules
+    logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
+
     if args.wandb:
         wandb.init(
             project="emgrep",
