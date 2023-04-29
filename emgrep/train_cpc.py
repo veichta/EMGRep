@@ -12,6 +12,7 @@ import numpy as np
 import torch
 import wandb
 from torch.utils.data import DataLoader
+from torchinfo import summary
 from tqdm import tqdm
 
 from emgrep.criterion import CPCCriterion
@@ -28,14 +29,24 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     Returns:
         CPCModel: Trained model.
     """
-    logging.info("Training the model...")
     start = time.time()
 
     # Initialize
+    assert (
+        args.encoder_dim == args.ar_dim
+    ), "we currently don't have an intermediate weight matrix to support different embed shapes of z vs c"
     encoder = CPCEncoder(in_channels=16, hidden_dim=args.encoder_dim)
     ar = CPCAR(dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers)
     cpc_model = CPCModel(encoder=encoder, ar=ar)
     criterion = CPCCriterion(k=args.cpc_k)
+
+    logging.info("Encoder Architecture:")
+    # @TODO parametrize shape
+    summary(encoder, (args.batch_size, 1, 10, 300, 16))
+    logging.info("AR head")
+    summary(ar, (args.batch_size, 1, 10, 256))
+
+    logging.info("Training the model...")
 
     optimizer = torch.optim.Adam(
         cpc_model.parameters(), lr=args.lr_cpc, weight_decay=args.weight_decay_cpc
@@ -73,12 +84,15 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
         save_checkpoint_cpc(model=cpc_model, epoch=epoch, metrics=metrics["val"], args=args)
 
     # test model
-    metrics["test"] = validate_cpc(
-        model=cpc_model,
-        dataloader=dataloaders["test"],
-        criterion=criterion,
-        epoch=epoch,
-        args=args,
+    # metrics["test"] = validate_cpc(
+    #    model=cpc_model,
+    #    dataloader=dataloaders["test"],
+    #    criterion=criterion,
+    #    epoch=epoch,
+    #    args=args,
+    # )
+    metrics["test"] = test(
+        model=cpc_model, dataloader=dataloaders["test"], criterion=criterion, epoch=epoch, args=args
     )
 
     end = time.time()
@@ -122,11 +136,12 @@ def train_one_epoch_cpc(
     Returns:
         Dict[str, float]: Training metrics.
     """
-    pbar = tqdm(dataloader, desc=f"Epoch {epoch+1} / {args.epochs_cpc+1}", ncols=100)
+    pbar = tqdm(dataloader, desc=f"Epoch {epoch+1} / {args.epochs_cpc}", ncols=100)
     losses = []
     for x, y, _ in pbar:
         out = model(x.to(args.device))
-        loss = criterion(out, y.to(args.device))
+        # loss = criterion(out, y.to(args.device))
+        loss = criterion(*out)
 
         optimizer.zero_grad()
         loss.backward()
@@ -160,13 +175,14 @@ def validate_cpc(
     Returns:
         Dict[str, float]: Validation metrics.
     """
-    pbar = tqdm(dataloader, desc=f"Epoch {epoch+1} / {args.epochs_cpc+1}", ncols=100)
+    pbar = tqdm(dataloader, desc=f"Val Epoch {epoch+1} / {args.epochs_cpc}", ncols=100)
     losses = []
     with torch.no_grad():
         for x, y, _ in pbar:
             out = model(x.to(args.device))
 
-            loss = criterion(out, y.to(args.device))
+            # loss = criterion(out, y.to(args.device))
+            loss = criterion(*out)
             losses.append(loss.item())
 
             if args.wandb:
@@ -195,13 +211,14 @@ def test(
     Returns:
         Dict[str, float]: Test metrics.
     """
-    pbar = tqdm(dataloader, desc=f"Epoch {epoch+1} / {args.epochs_cpc+1}", ncols=100)
+    pbar = tqdm(dataloader, desc=f"Testing {epoch+1} / {args.epochs_cpc}", ncols=100)
     losses = []
     with torch.no_grad():
         for x, y, _ in pbar:
             out = model(x.to(args.device))
 
-            loss = criterion(out, y.to(args.device))
+            # loss = criterion(out, y.to(args.device))
+            loss = criterion(*out)
             losses.append(loss.item())
 
             pbar.set_postfix({"loss": np.mean(losses)})
@@ -223,7 +240,7 @@ def save_checkpoint_cpc(
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
 
-    losses = [m["loss"] for m in metrics["val"].values()]
+    losses = [m["loss"] for m in metrics.values()]
     best_epoch = np.argmin(losses)
 
     if epoch == best_epoch:

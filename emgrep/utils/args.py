@@ -27,6 +27,12 @@ def parse_args() -> argparse.Namespace:
         choices=["cpu", "cuda", "mps"],
         help="Device to use for training.",
     )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="logs",
+        help="Where to save output (e.g. plots).",
+    )
 
     # DATA LOADER
     parser.add_argument(
@@ -75,7 +81,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=1,
+        default=3,  # weird prime number for debug purposes
         help="Batch size for dataloader.",
     )
     parser.add_argument(
@@ -95,7 +101,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--ar_dim",
         type=int,
-        default=512,
+        default=256,
         help="Dimension of autoregressive model output.",
     )
     parser.add_argument(
@@ -115,7 +121,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--epochs_cpc",
         type=int,
-        default=10,
+        default=1,
         help="Number of epochs for training CPC.",
     )
     parser.add_argument(

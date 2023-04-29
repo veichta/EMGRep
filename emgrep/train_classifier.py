@@ -13,26 +13,55 @@ from torch.utils.data import DataLoader, Dataset
 
 
 class LinearClassificationHead(torch.nn.Module):
-    def __init__(self, inputSize, outputSize):
+    """Architectural functionality for logistic regression"""
+
+    def __init__(self, inputSize: int, outputSize: int):
+        """Initializes the Logistic Regression Model.
+
+        Args:
+            inputSize (int): embedding size
+            outputSize (int): number of classes
+        """
         super(LinearClassificationHead, self).__init__()
         self.linear = torch.nn.Linear(inputSize, outputSize)
         # self.softmax = torch.nn.Softmax(axis=1)
 
-    def forward(self, x):
+    def forward(self, x: torch.tensor):
+        """runs a forward pass
+
+        Args:
+            x : input tensor
+        """
         out = self.linear(x)
         out = torch.softmax(out, axis=1)
         return out
 
 
 class DownstreamTuner:
-    def __init__(self, n_classes, encoding_size, lr=1e-1, epochs=100):
+    """Fitting & evaluation functionality for the classification head"""
+
+    def __init__(self, n_classes: int, encoding_size: int, lr=1e-1, epochs=100):
+        """Initializes the Classification Meta Model.
+
+        Args:
+            n_classes (int): Number of action classes
+            encoding_size (int): Encoding size (assuming one-dim.)
+            lr (float): initial learning rate
+            epochs (int): number of epochs to train for
+        """
         self.n_classes = n_classes
         self.head = LinearClassificationHead(encoding_size, n_classes)
         self.lr = lr
         self.epochs = epochs
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def fit(self, dataloader):
+    def fit(self, dataloader: DataLoader) -> DataLoader:
+        """Parse command line arguments.
+        Args:
+            dataloaders (DataLoader]): a dataloader delivering tuples of type (embed_1d, class_label).
+        Returns:
+            DonstreamTuner: itself
+        """
         self.head.to(self.device)
 
         criterion = torch.nn.CrossEntropyLoss()
@@ -64,12 +93,24 @@ class DownstreamTuner:
 
         return self
 
-    def predict(self, dataloader):
+    def predict(self, dataloader: DataLoader) -> torch.Tensor:
+        """Parse command line arguments.
+        Args:
+            dataloader (DataLoader]): a dataloader delivering tuples of type (embed_1d, class_label). (batched!)
+        Returns:
+            torch.Tensor: Tensor of shape (nsamples, nclasses) with class probabilities.
+        """
         with torch.no_grad():
             self.head.to(self.device)
             return torch.cat([self.head(x.float().to(self.device)) for x, y in dataloader], dim=0)
 
-    def score(self, dataloader):
+    def score(self, dataloader: DataLoader) -> dict[str, float]:
+        """Parse command line arguments.
+        Args:
+            dataloader (DataLoader]): a dataloader delivering tuples of type (embed_1d, class_label).
+        Returns:
+            dict[str, float]: test metrics by name. Example: res["accuracy"].
+        """
         pred = self.predict(dataloader)
         y = torch.cat([_y for x, _y in dataloader], dim=0)
         scores = {
@@ -87,7 +128,7 @@ class DownstreamTuner:
 def train_classifier(
     representations: dict[str, Dataset], dataloaders: dict[str, DataLoader], args: Namespace
 ):
-    """Train the classifier.
+    """Train the linear classifier.
 
     Args:
         representations (dict[str, DataLoader]): Dictionary of representations datasets.
@@ -124,6 +165,7 @@ def train_classifier(
 
 
 def test_logreg():
+    """Runs a testing script with dummy data & plots for the logistic regression head"""
     # create dummy data
     encoding_size = 2
     n_classes = 2
@@ -182,5 +224,5 @@ def test_logreg():
     plt.show()
 
 
-if __name__ == "__main__":
-    test_logreg()
+# if __name__ == "__main__":
+#    test_logreg()
