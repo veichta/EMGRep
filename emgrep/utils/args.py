@@ -48,7 +48,7 @@ def parse_args() -> argparse.Namespace:
         help="Number of days to use.",
     )
     parser.add_argument(
-        "--n_sessions",
+        "--n_times",
         type=int,
         default=2,
         help="Number of sessions to use.",
