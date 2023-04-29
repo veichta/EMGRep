@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "name": "Tobi main.py",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "justMyCode": true
+            "args": [
+                "--num_workers",
+                "0"
+            ]
+        }
+    ]
+}
