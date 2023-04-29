@@ -32,9 +32,8 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     start = time.time()
 
     # Initialize
-    assert (
-        args.encoder_dim == args.ar_dim
-    ), "we currently don't have an intermediate weight matrix to support different embed shapes of z vs c"
+    assert args.encoder_dim == args.ar_dim, "Encoder and AR dimensions must be the same for now."
+
     encoder = CPCEncoder(in_channels=16, hidden_dim=args.encoder_dim)
     ar = CPCAR(dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers)
     cpc_model = CPCModel(encoder=encoder, ar=ar)

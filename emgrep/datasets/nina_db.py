@@ -1,7 +1,7 @@
 """Datasets for the NINA-PRO dataset."""
 
 import logging
-from typing import Any
+from typing import Any, Dict, List
 
 import numpy as np
 import torch
@@ -13,7 +13,7 @@ class SingleFileEMGDataLoader(Dataset):
 
     def __init__(
         self,
-        mat_file: dict[str, Any],
+        mat_file: Dict[str, Any],
         positives: str = "self",
         sec_len: int = 3000,
         block_len: int = 300,
@@ -26,7 +26,7 @@ class SingleFileEMGDataLoader(Dataset):
         """Initialize the dataset.
 
         Args:
-            mat_file (dict[str, Any]): Dictionary containing the data.
+            mat_file (Dict[str, Any]): Dictionary containing the data.
             positives (str, optional): Whether to use self or subject as positive class. Defaults to
             "self".
             sec_len (int, optional): Length of the sequence. Defaults to 3000.
@@ -58,11 +58,11 @@ class SingleFileEMGDataLoader(Dataset):
         self.data = self.get_sequences()
         self.label_samples = self.get_label_to_seq()
 
-    def get_sequences(self) -> list[tuple[Any, Any, Any]]:
+    def get_sequences(self) -> List[tuple[Any, Any, Any]]:
         """Get the sequences.
 
         Returns:
-            list[tuple[Any, Any]]: List of sequences.
+            List[tuple[Any, Any]]: List of sequences.
         """
         info = {
             "subject": self.mat_file["subj"][0, 0],
@@ -100,7 +100,7 @@ class SingleFileEMGDataLoader(Dataset):
         ]
         return np.array(sig_blocks), np.array(stim_blocks)
 
-    def get_label_to_seq(self) -> dict[int, list[int]]:
+    def get_label_to_seq(self) -> Dict[int, List[int]]:
         """Get the label to sequence mapping.
 
         Args:
@@ -108,9 +108,9 @@ class SingleFileEMGDataLoader(Dataset):
             labels (Any): Labels.
 
         Returns:
-            dict[int, list[Any]]: Label to sequence mapping.
+            Dict[int, List[Any]]: Label to sequence mapping.
         """
-        label_to_seq: dict[int, list[int]] = {c: [] for c in self.classes}
+        label_to_seq: Dict[int, List[int]] = {c: [] for c in self.classes}
         for i, d in enumerate(self.data):
             _, labels, _ = d
             label = labels[-1]

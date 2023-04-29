@@ -1,24 +1,24 @@
 """Helper functions for loading and saving data."""
 
 import os
-from typing import Any
+from typing import Any, Dict
 
 import scipy.io as sio
 
 
-def load_mat(filename: str) -> dict[str, Any]:
+def load_mat(filename: str) -> Dict[str, Any]:
     """Load a .mat file.
 
     Args:
         filename (str): Path to the .mat file.
 
     Returns:
-        dict[str, Any]: Dictionary containing the variables in the .mat file.
+        Dict[str, Any]: Dictionary containing the variables in the .mat file.
     """
     return sio.loadmat(filename)
 
 
-def get_recording(subject: int, day: int, time: int, data_path: str) -> dict[str, Any]:
+def get_recording(subject: int, day: int, time: int, data_path: str) -> Dict[str, Any]:
     """Load a recording from the dataset.
 
     Args:
@@ -31,7 +31,7 @@ def get_recording(subject: int, day: int, time: int, data_path: str) -> dict[str
         ValueError: If subject, day or time are not in the valid range.
 
     Returns:
-        dict[str, Any]: Dictionary containing the variables in the .mat file.
+        Dict[str, Any]: Dictionary containing the variables in the .mat file.
     """
     if subject not in range(1, 11):
         raise ValueError(f"Subject {subject} not in [1, 10]")
