@@ -149,7 +149,7 @@ def train_one_epoch_cpc(
 
         losses.append(loss.item())
         if args.wandb:
-            wandb.log({"loss": loss.item()})
+            wandb.log({"train_loss": loss.item()})
 
         pbar.set_postfix({"loss": np.mean(losses)})
 
