@@ -2,6 +2,7 @@
 
 import datetime
 import logging
+import os
 import time
 from argparse import Namespace
 from typing import Dict
@@ -65,6 +66,7 @@ class DownstreamTuner:
         self.lr = lr
         self.epochs = epochs
         self.device = args.device
+        self.args = args
 
     def fit(self, dataloader: DataLoader) -> DataLoader:
         """Fits a linear log-reg model on the given training set for a fixed number of epochs.
@@ -86,7 +88,9 @@ class DownstreamTuner:
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.99)
         losses = []
 
-        for epoch in tqdm(range(self.epochs), desc="Training Epoch"):
+        pbar = tqdm(range(self.epochs), desc="Training Epoch")
+
+        for _ in pbar:
             ep_loss = []
             for x, y in dataloader:
                 optimizer.zero_grad()
@@ -101,12 +105,18 @@ class DownstreamTuner:
 
                 ep_loss.append(loss.item())
 
-            logging.info(f"epoch {epoch}, loss {np.mean(ep_loss)}")
+            pbar.set_postfix({"loss": np.mean(ep_loss)})
             losses.append(np.mean(ep_loss))
 
         plt.title("training loss")
-        plt.plot(losses)
-        plt.show()
+        plt.plot(losses, label="loss")
+
+        plt.xlabel("epoch")
+        plt.ylabel("loss")
+        plt.legend()
+
+        plt.savefig(os.path.join(self.args.log_dir, "classification_loss.png"))
+        plt.close()
 
         return self
 
@@ -148,8 +158,8 @@ class DownstreamTuner:
         # @TODO how do we want to handle sequences? Curr: Just flatten
         y = torch.flatten(torch.cat([_y for x, _y in dataloader], dim=0))
         return {
-            "accuracy": acc_fn(torch.argmax(pred, axis=1), y.long().to(self.device)).item(),
-            "roc_auc": roc_fn(pred, y.long().to(self.device)).item(),
+            "acc": acc_fn(torch.argmax(pred, axis=1), y.long().to(self.device)).item(),
+            "auc": roc_fn(pred, y.long().to(self.device)).item(),
             "f1": f1_fn(torch.argmax(pred, axis=1), y.long().to(self.device)).item(),
         }
 
@@ -184,7 +194,18 @@ def train_classifier(
     }
 
     logging.info("Classification results:")
-    logging.info(str(res))
+
+    logging.info("Train:")
+    for metric, val in res["train"].items():
+        logging.info(f"  {metric}:\t{val:.4f}")
+
+    logging.info("Val:")
+    for metric, val in res["val"].items():
+        logging.info(f"  {metric}:\t{val:.4f}")
+
+    logging.info("Test:")
+    for metric, val in res["test"].items():
+        logging.info(f"  {metric}:\t{val:.4f}")
 
     # TODO: Train classifier
 

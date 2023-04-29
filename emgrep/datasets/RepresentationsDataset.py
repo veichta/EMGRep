@@ -1,5 +1,6 @@
 """Dataset holding the extracted representations."""
 
+import logging
 from argparse import Namespace
 
 import torch
@@ -29,10 +30,10 @@ class RepresentationDataset(Dataset):
             import numpy as np
 
             vals = np.array([x.numpy() for x in self.labels]).flatten().astype(np.int8)
-            print(np.unique(vals))
+            logging.warning(np.unique(vals))
         except Exception:
             # WTF?
-            print("Heterogeneous labels received from dataloader")
+            logging.warning("Heterogeneous labels received from dataloader")
 
     def _extract_representations(
         self, model: CPCModel, dataloader: torch.utils.data.DataLoader, args: Namespace
@@ -55,11 +56,11 @@ class RepresentationDataset(Dataset):
         model.to(args.device)
         with torch.no_grad():
             # takes the 2nd output of the model (which is c) and the first sample of all pairs as
-            # DATA and the first label of the first sample of label pairs as label
+            # DATA and the first label of the last sample of label pairs as label
             # (one lbl per block)
             return zip(
                 *(
-                    (model(x.to(args.device))[1][:, 0], y[:, 0, :, 0, 0])
+                    (model(x.to(args.device))[1][:, 0], y[:, 0, :, -1, 0])
                     for x, y, _ in tqdm(dataloader, desc="Generating Embeddings")
                 )
             )

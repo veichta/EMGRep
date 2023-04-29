@@ -161,6 +161,10 @@ def get_dataloader(args: Namespace) -> Dict[str, DataLoader]:
 
     train_dl, val_dl, test_dl = dl.get_dataloaders()
 
+    logging.info(f"Train samples: {len(train_dl.dataset)}")
+    logging.info(f"Val   samples: {len(val_dl.dataset)}")
+    logging.info(f"Test  samples: {len(test_dl.dataset)}")
+
     return {
         "train": train_dl,
         "val": val_dl,
