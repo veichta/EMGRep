@@ -138,19 +138,19 @@ class DownstreamTuner:
         Returns:
             Dict[str, float]: Test metrics by name.
         """
+        acc_fn = torchmetrics.Accuracy(task="multiclass", num_classes=self.n_classes).to(
+            self.device
+        )
+        roc_fn = torchmetrics.AUROC(task="multiclass", num_classes=self.n_classes).to(self.device)
+        f1_fn = torchmetrics.F1Score(task="multiclass", num_classes=self.n_classes).to(self.device)
+
         pred = self.predict(dataloader)
         # @TODO how do we want to handle sequences? Curr: Just flatten
         y = torch.flatten(torch.cat([_y for x, _y in dataloader], dim=0))
         return {
-            "accuracy": torchmetrics.Accuracy(task="multiclass", num_classes=self.n_classes)(
-                torch.argmax(pred, axis=1).to(self.device), y.long().to(self.device)
-            ).item(),
-            "roc_auc": torchmetrics.AUROC(task="multiclass", num_classes=self.n_classes)(
-                pred.to(self.device), y.long().to(self.device)
-            ).item(),
-            "f1": torchmetrics.F1Score(task="multiclass", num_classes=self.n_classes)(
-                torch.argmax(pred, axis=1).to(self.device), y.long().to(self.device)
-            ).item(),
+            "accuracy": acc_fn(torch.argmax(pred, axis=1), y.long().to(self.device)).item(),
+            "roc_auc": roc_fn(pred, y.long().to(self.device)).item(),
+            "f1": f1_fn(torch.argmax(pred, axis=1), y.long().to(self.device)).item(),
         }
 
 

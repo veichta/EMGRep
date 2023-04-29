@@ -53,10 +53,12 @@ def setup_logging(args: argparse.Namespace):
     logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
 
     if args.wandb:
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         wandb.init(
             project="emgrep",
-            name=f"{args.positive_mode}_{args.val_idx}_{args.test_idx}",
+            name=f"{args.positive_mode}_{args.val_idx}_{args.test_idx}_{timestamp}",
             config=vars(args),
+            dir=args.log_dir,
         )
 
 

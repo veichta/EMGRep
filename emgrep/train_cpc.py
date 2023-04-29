@@ -41,6 +41,9 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     cpc_model = CPCModel(encoder=encoder, ar=ar)
     criterion = CPCCriterion(k=args.cpc_k)
 
+    if args.wandb:
+        wandb.watch(cpc_model, log_freq=100)
+
     # logging.info("Encoder Architecture:")
     # # TODO: parametrize shape
     # summary(encoder, (args.batch_size, 1, 10, 300, 16))
