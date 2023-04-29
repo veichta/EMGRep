@@ -152,7 +152,7 @@ def train_one_epoch_cpc(
     Returns:
         Dict[str, float]: Training metrics.
     """
-    pbar = tqdm(dataloader, desc=f"Epoch {epoch+1} / {args.epochs_cpc}", ncols=100)
+    pbar = tqdm(dataloader, desc=f"Train Epoch {epoch+1} / {args.epochs_cpc}", ncols=100)
     losses = []
     model.to(args.device)
     criterion.to(args.device)
@@ -194,7 +194,8 @@ def validate_cpc(
     Returns:
         Dict[str, float]: Validation metrics.
     """
-    pbar = tqdm(dataloader, desc=f"Val Epoch {epoch+1} / {args.epochs_cpc}", ncols=100)
+    pbar = tqdm(dataloader, desc=f"Valid Epoch {epoch+1} / {args.epochs_cpc}", ncols=100)
+
     losses = []
     model.to(args.device)
     criterion.to(args.device)
