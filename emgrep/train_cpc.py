@@ -58,7 +58,6 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
 
     # TODO: Train model
     metrics: Dict[str, Any] = {"train": {}, "val": {}, "test": {}}
-    cpc_model.to(args.device)
     for epoch in range(args.epochs_cpc):
         metrics["train"][epoch] = train_one_epoch_cpc(
             model=cpc_model,
@@ -138,6 +137,7 @@ def train_one_epoch_cpc(
     """
     pbar = tqdm(dataloader, desc=f"Epoch {epoch+1} / {args.epochs_cpc}", ncols=100)
     losses = []
+    model.to(args.device)
     for x, _, _ in pbar:
         optimizer.zero_grad()
         out = model(x.to(args.device))
@@ -177,6 +177,7 @@ def validate_cpc(
     """
     pbar = tqdm(dataloader, desc=f"Val Epoch {epoch+1} / {args.epochs_cpc}", ncols=100)
     losses = []
+    model.to(args.device)
     with torch.no_grad():
         for x, y, _ in pbar:
             out = model(x.to(args.device))
