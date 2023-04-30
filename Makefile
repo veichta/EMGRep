@@ -10,3 +10,7 @@ download_dataset:
 	. ./scripts/move_data.sh
 
 install: install_precommit install_deps
+
+sync:
+	rsync -auv --progress --exclude-from=.gitignore --exclude=data . ${USR}@euler.ethz.ch:/cluster/home/veichta/code/EMGRep
+
