@@ -57,4 +57,4 @@ class CPCCriterion(nn.Module):
         negative = z[:, 0, :, :].flatten(0, 1)  # (batchSize * seqLen, zDim)
 
         # compute loss
-        return self.infonce(positive, anchor, negative)  # self.infonce(anchor, positive, negative)
+        return self.infonce(anchor, positive, negative)
