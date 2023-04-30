@@ -5,13 +5,14 @@ import logging
 import os
 import time
 from argparse import Namespace
-from typing import Dict
+from typing import Any, Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torchmetrics
 import wandb
+from sklearn.metrics import classification_report
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -140,29 +141,60 @@ class DownstreamTuner:
                 dim=0,
             )
 
-    def score(self, dataloader: DataLoader) -> Dict[str, float]:
+    def score(self, dataloader: DataLoader, split: str) -> Dict[str, float]:
         """Computes the test metrics for the given dataloader.
 
         Args:
             dataloader (DataLoader): A dataloader delivering tuples of type (embed_1d, class_label).
+            split (str): The split name.
 
         Returns:
             Dict[str, float]: Test metrics by name.
         """
-        acc_fn = torchmetrics.Accuracy(task="multiclass", num_classes=self.n_classes).to(
-            self.device
-        )
-        roc_fn = torchmetrics.AUROC(task="multiclass", num_classes=self.n_classes).to(self.device)
-        f1_fn = torchmetrics.F1Score(task="multiclass", num_classes=self.n_classes).to(self.device)
+        roc_fn = torchmetrics.AUROC(task="multiclass", num_classes=self.n_classes).cpu()
 
-        pred = self.predict(dataloader)
-        # @TODO how do we want to handle sequences? Curr: Just flatten
-        y = torch.flatten(torch.cat([_y for x, _y in dataloader], dim=0))
-        return {
-            "acc": acc_fn(torch.argmax(pred, axis=1), y.long().to(self.device)).item(),
-            "auc": roc_fn(pred, y.long().to(self.device)).item(),
-            "f1": f1_fn(torch.argmax(pred, axis=1), y.long().to(self.device)).item(),
-        }
+        pred = self.predict(dataloader).cpu()
+        # TODO: how do we want to handle sequences? Curr: Just flatten
+        y = torch.flatten(torch.cat([_y for x, _y in dataloader], dim=0)).cpu().long()
+
+        pred_classes = torch.argmax(pred, axis=1)
+        rep_str = classification_report(
+            y.numpy(), pred_classes.numpy(), zero_division=0, output_dict=False
+        )
+        logging.info(f"{split.capitalize()} classification report:\n{rep_str}")
+
+        report = classification_report(
+            y.numpy(), pred_classes.numpy(), output_dict=True, zero_division=0
+        )
+        report = cleanup_report(report)
+        report["roc-auc"] = roc_fn(pred, y).item()
+        return report
+
+
+def cleanup_report(report: Dict[str, Any]) -> Dict[str, Any]:
+    """Cleans up the classification report.
+
+    Args:
+        report (Dict): Classification report.
+
+    Returns:
+        Dict: Cleaned up classification report.
+    """
+    cleaned_report = {}
+
+    for class_label, metrics in report.items():
+        if class_label in [str(i) for i in range(12)]:  # class labels
+            prefix = f"class-{class_label}-"
+            for metric, score in metrics.items():
+                cleaned_report[prefix + metric] = score
+        elif class_label in ["macro avg", "weighted avg"]:
+            prefix = f"{class_label.replace(' ', '-')}-"
+            for metric, score in metrics.items():
+                cleaned_report[prefix + metric] = score
+        elif class_label == "accuracy":
+            cleaned_report[class_label] = metrics
+
+    return cleaned_report
 
 
 def train_classifier(
@@ -189,30 +221,20 @@ def train_classifier(
     # y_pred = np.argmax(tuner.predict("test_dl").numpy(), axis=1)
 
     res = {
-        "train": tuner.score(dataloader=representations["train"]),
-        "val": tuner.score(dataloader=representations["val"]),
-        "test": tuner.score(dataloader=representations["test"]),
+        "train": tuner.score(dataloader=representations["train"], split="train"),
+        "val": tuner.score(dataloader=representations["val"], split="val"),
+        "test": tuner.score(dataloader=representations["test"], split="test"),
     }
 
-    logging.info("Classification results:")
+    if args.wandb:
+        for metric, val in res["train"].items():
+            wandb.log({f"linear-train-{metric}": val})
 
-    logging.info("Train:")
-    for metric, val in res["train"].items():
-        logging.info(f"  {metric}:\t{val:.4f}")
-        if args.wandb:
-            wandb.log({f"classification_train_{metric}": val})
+        for metric, val in res["val"].items():
+            wandb.log({f"linear-val-{metric}": val})
 
-    logging.info("Val:")
-    for metric, val in res["val"].items():
-        logging.info(f"  {metric}:\t{val:.4f}")
-        if args.wandb:
-            wandb.log({f"classification_val_{metric}": val})
-
-    logging.info("Test:")
-    for metric, val in res["test"].items():
-        logging.info(f"  {metric}:\t{val:.4f}")
-        if args.wandb:
-            wandb.log({f"classification_test_{metric}": val})
+        for metric, val in res["test"].items():
+            wandb.log({f"linear-test-{metric}": val})
 
     # TODO: Train classifier
 

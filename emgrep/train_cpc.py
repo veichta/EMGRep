@@ -100,14 +100,7 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
             logging.info(f"Early stopping at epoch {epoch+1}")
             break
 
-    # test model
-    # metrics["test"] = validate_cpc(
-    #    model=cpc_model,
-    #    dataloader=dataloaders["test"],
-    #    criterion=criterion,
-    #    epoch=epoch,
-    #    args=args,
-    # )
+    # Test
     metrics["test"] = test(
         model=cpc_model, dataloader=dataloaders["test"], criterion=criterion, epoch=epoch, args=args
     )
@@ -159,14 +152,11 @@ def train_one_epoch_cpc(
     model.to(args.device)
     criterion.to(args.device)
     for x, _, _ in pbar:
-        for _ in range(1):
-            optimizer.zero_grad()
-            out = model(x.to(args.device))
-            loss = criterion(*out)
-            loss.backward()
-            optimizer.step()
-            # print(loss.item())
-        # exit()
+        optimizer.zero_grad()
+        out = model(x.to(args.device))
+        loss = criterion(*out)
+        loss.backward()
+        optimizer.step()
 
         losses.append(loss.item())
         if args.wandb:
@@ -206,7 +196,6 @@ def validate_cpc(
         for x, y, _ in pbar:
             out = model(x.to(args.device))
 
-            # loss = criterion(out, y.to(args.device))
             loss = criterion(*out)
             losses.append(loss.item())
 
