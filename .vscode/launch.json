@@ -5,10 +5,22 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/main.py",
-            "justMyCode": true
+            "justMyCode": true,
             "args": [
                 "--num_workers",
-                "0"
+                "0",
+                "--encoder_dim",
+                "256",
+                "--ar_dim",
+                "256",
+                "--n_subjects",
+                "1",
+                "--cpc_k",
+                "5",
+                "--lr_cpc",
+                "1e-4",
+                "--batch_size",
+                "8"
             ]
         }
     ]

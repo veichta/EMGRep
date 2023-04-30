@@ -46,10 +46,11 @@ class CPCCriterion(nn.Module):
 
         # compute anchor and positive samples
         anchor, positive = [], []
-        for offset in range(1, self.k):
-            zPos = z[:, 0, offset:, :].flatten(0, 1)
+        for offset in range(1, self.k + 1):
             cPos = c[:, 0, :-offset, :].flatten(0, 1)
-            anchor.append(self.linear[offset](cPos))
+            cPos = self.linear[offset - 1](cPos)
+            anchor.append(cPos)
+            zPos = z[:, 0, offset:, :].flatten(0, 1)
             positive.append(zPos)
         anchor = torch.cat(anchor, dim=0)  # (batchSize * (seqLen-k), zDim)
         positive = torch.cat(positive, dim=0)  # (batchSize * (seqLen-k), zDim)

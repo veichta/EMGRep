@@ -39,7 +39,7 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     encoder = CPCEncoder(in_channels=16, hidden_dim=args.encoder_dim)
     ar = CPCAR(dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers)
     cpc_model = CPCModel(encoder=encoder, ar=ar)
-    criterion = CPCCriterion(k=args.cpc_k)
+    criterion = CPCCriterion(k=args.cpc_k, zDim=args.encoder_dim, cDim=args.ar_dim)
 
     if args.wandb:
         wandb.watch(cpc_model, log_freq=100)
@@ -52,7 +52,7 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
 
     logging.info("Training the model...")
 
-    parameters = itertools.chain(cpc_model.parameters(), criterion.parameters())
+    parameters = itertools.chain(encoder.parameters(), ar.parameters(), criterion.parameters())
     optimizer = torch.optim.Adam(parameters, lr=args.lr_cpc, weight_decay=args.weight_decay_cpc)
     # reduce on plateau
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -154,17 +154,18 @@ def train_one_epoch_cpc(
     """
     pbar = tqdm(dataloader, desc=f"Train Epoch {epoch+1} / {args.epochs_cpc}", ncols=100)
     losses = []
+    model.train()
     model.to(args.device)
     criterion.to(args.device)
-    model.train()
     for x, _, _ in pbar:
-        optimizer.zero_grad()
-        out = model(x.to(args.device))
-        # loss = criterion(out, y.to(args.device))
-        loss = criterion(*out)
-
-        loss.backward()
-        optimizer.step()
+        for _ in range(1):
+            optimizer.zero_grad()
+            out = model(x.to(args.device))
+            loss = criterion(*out)
+            loss.backward()
+            optimizer.step()
+            # print(loss.item())
+        # exit()
 
         losses.append(loss.item())
         if args.wandb:
