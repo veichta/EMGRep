@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torchmetrics
+import wandb
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -198,14 +199,20 @@ def train_classifier(
     logging.info("Train:")
     for metric, val in res["train"].items():
         logging.info(f"  {metric}:\t{val:.4f}")
+        if args.wandb:
+            wandb.log({f"classification_train_{metric}": val})
 
     logging.info("Val:")
     for metric, val in res["val"].items():
         logging.info(f"  {metric}:\t{val:.4f}")
+        if args.wandb:
+            wandb.log({f"classification_val_{metric}": val})
 
     logging.info("Test:")
     for metric, val in res["test"].items():
         logging.info(f"  {metric}:\t{val:.4f}")
+        if args.wandb:
+            wandb.log({f"classification_test_{metric}": val})
 
     # TODO: Train classifier
 
