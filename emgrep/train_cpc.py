@@ -41,6 +41,9 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     cpc_model = CPCModel(encoder=encoder, ar=ar)
     criterion = CPCCriterion(k=args.cpc_k, zDim=args.encoder_dim, cDim=args.ar_dim)
 
+    n_params = sum(p.numel() for p in cpc_model.parameters() if p.requires_grad)
+    logging.info(f"Number of trainable parameters: {n_params/1e6:.2f}M")
+
     if args.wandb:
         wandb.watch(cpc_model, log_freq=100)
         wandb.watch(criterion, log_freq=100)
