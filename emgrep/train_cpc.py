@@ -195,6 +195,7 @@ def validate_cpc(
     model.to(args.device)
     criterion.to(args.device)
     model.eval()
+    criterion.eval()
     with torch.no_grad():
         for x, y, _ in pbar:
             out = model(x.to(args.device))
@@ -233,6 +234,7 @@ def test(
     model.to(args.device)
     criterion.to(args.device)
     model.eval()
+    criterion.eval()
     with torch.no_grad():
         for x, y, _ in pbar:
             out = model(x.to(args.device))

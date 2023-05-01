@@ -14,13 +14,15 @@
                 "--ar_dim",
                 "256",
                 "--n_subjects",
-                "1",
-                "--cpc_k",
-                "5",
+                "3",
+                "--val_idx",
+                "2",
+                "--test_idx",
+                "3",
                 "--lr_cpc",
-                "1e-4",
-                "--batch_size",
-                "8"
+                "2e-4",
+                "--positive_mode",
+                "label"
             ]
         }
     ]
