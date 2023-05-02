@@ -24,6 +24,27 @@
                 "--positive_mode",
                 "label"
             ]
+        },
+        {
+            "name": "supervised",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/train_supervised.py",
+            "justMyCode": true,
+            "args": [
+                "--num_workers",
+                "0",
+                "--encoder_dim",
+                "256",
+                "--ar_dim",
+                "256",
+                "--n_subjects",
+                "1",
+                "--n_days",
+                "3",
+                "--n_times",
+                "1"
+            ]
         }
     ]
 }
