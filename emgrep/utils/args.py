@@ -163,17 +163,23 @@ def parse_args() -> argparse.Namespace:
         help="Number of epochs for training classifier.",
     )
     parser.add_argument(
+        "--lr_classifier",
+        type=float,
+        default=1e-2,
+        help="Learning rate for training classifier.",
+    )
+    parser.add_argument(
         "--batch_size_classifier",
         type=int,
         default=64,
         help="Batch Size for training classifier.",
     )
-    parser.add_argument(
-        "--n_classes",
-        type=int,
-        default=12,
-        help="Number of classes classifier.",
-    )
+    # parser.add_argument(
+    #     "--n_classes",
+    #     type=int,
+    #     default=12,
+    #     help="Number of classes classifier.",
+    # )
 
     # LOGGING
     parser.add_argument(

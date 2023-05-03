@@ -14,15 +14,22 @@
                 "--ar_dim",
                 "256",
                 "--n_subjects",
+                "1",
+                "--n_days",
                 "3",
+                "--n_times",
+                "1",
                 "--val_idx",
-                "2",
+                "1",
                 "--test_idx",
-                "3",
+                "2",
                 "--lr_cpc",
-                "2e-4",
+                "2e-3",
                 "--positive_mode",
-                "label"
+                "none",
+                "--epochs_cpc",
+                "1",
+                "--debug"
             ]
         },
         {

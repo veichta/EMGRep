@@ -13,11 +13,12 @@ import torch
 import torchmetrics
 import wandb
 from sklearn.metrics import classification_report
+from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 
-class LinearClassificationHead(torch.nn.Module):
+class LinearClassificationHead(nn.Module):
     """Architectural functionality for logistic regression."""
 
     def __init__(self, input_size: int, output_size: int):
@@ -28,8 +29,14 @@ class LinearClassificationHead(torch.nn.Module):
             output_size (int): Output size.
         """
         super(LinearClassificationHead, self).__init__()
-        self.linear = torch.nn.Linear(input_size, output_size)
-        # self.softmax = torch.nn.Softmax(axis=1)
+        # self.linear = nn.Linear(input_size, output_size)
+        self.linear = nn.Sequential(
+            nn.Linear(input_size, input_size),
+            nn.ReLU(),
+            nn.Linear(input_size, output_size),
+        )
+
+        # self.softmax = nn.Softmax(axis=1)
 
     def forward(self, x: torch.tensor):
         """Forward pass.
@@ -82,31 +89,32 @@ class DownstreamTuner:
         # TODO: Do we want the full [train until cvg w.r.t val set] setup?
         self.head.to(self.device)
 
-        criterion = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(
-            self.head.parameters(), lr=self.lr, weight_decay=0.001
-        )  # , momentum=0.1
+        criterion = nn.CrossEntropyLoss()
+        # , momentum=0.1
+        optimizer = torch.optim.Adam(self.head.parameters(), lr=self.lr, weight_decay=0)
         # )
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.99)
+        # scheduler = torch.optim.lr_scheduler.StepLR(
+        #     optimizer, step_size=1, gamma=0.99, verbose=True
+        # )
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode="min", factor=0.1, patience=5, verbose=True
+        )
+
+        pbar = tqdm(range(self.epochs), desc="Training Epoch", ncols=100)
+
         losses = []
-
-        pbar = tqdm(range(self.epochs), desc="Training Epoch")
-
         for _ in pbar:
             ep_loss = []
             for x, y in dataloader:
                 optimizer.zero_grad()
-                # @TODO how do we want to handle sequences? Curr: Just flatten
-                x = torch.reshape(x.to(self.device), (-1, self.encoding_size))
-                y = torch.reshape(y.long().to(self.device), (-1,))
-                outputs = self.head(x)
-                loss = criterion(outputs, y)
+                outputs = self.head(x.to(self.device))
+                loss = criterion(outputs, y.to(self.device))
                 loss.backward()
                 optimizer.step()
-                scheduler.step()
 
                 ep_loss.append(loss.item())
 
+            scheduler.step(loss)
             pbar.set_postfix({"loss": np.mean(ep_loss)})
             losses.append(np.mean(ep_loss))
 
@@ -155,16 +163,27 @@ class DownstreamTuner:
 
         pred = self.predict(dataloader).cpu()
         # TODO: how do we want to handle sequences? Curr: Just flatten
-        y = torch.flatten(torch.cat([_y for x, _y in dataloader], dim=0)).cpu().long()
+        y = torch.cat([_y for x, _y in dataloader], dim=0).cpu().long()
 
+        rev_map = {v: k for k, v in dataloader.dataset.label_map.items()}
+        class_names = [str(rev_map[c]) for c in torch.unique(y).cpu().numpy()]
         pred_classes = torch.argmax(pred, axis=1)
+
         rep_str = classification_report(
-            y.numpy(), pred_classes.numpy(), zero_division=0, output_dict=False
+            y.numpy(),
+            pred_classes.numpy(),
+            target_names=class_names,
+            zero_division=0,
+            output_dict=False,
         )
         logging.info(f"{split.capitalize()} classification report:\n{rep_str}")
 
         report = classification_report(
-            y.numpy(), pred_classes.numpy(), output_dict=True, zero_division=0
+            y.numpy(),
+            pred_classes.numpy(),
+            target_names=class_names,
+            output_dict=True,
+            zero_division=0,
         )
         report = cleanup_report(report)
         report["roc-auc"] = roc_fn(pred, y).item()
@@ -197,33 +216,37 @@ def cleanup_report(report: Dict[str, Any]) -> Dict[str, Any]:
     return cleaned_report
 
 
-def train_classifier(
-    representations: Dict[str, Dataset], dataloaders: Dict[str, DataLoader], args: Namespace
-):
+def train_classifier(representations: Dict[str, Dataset], args: Namespace):
     """Train the linear classifier.
 
     Args:
         representations (Dict[str, DataLoader]): Dictionary of representations datasets.
-        dataloaders (Dict[str, DataLoader]): Dictionary of dataloaders.
         args (Namespace): Command line arguments.
     """
     logging.info("Training the classifier...")
     start = time.time()
 
+    n_classes = len(representations["train"].actual_labels)
+    logging.debug(f"Number of classes: {n_classes}")
+
     tuner = DownstreamTuner(
-        n_classes=args.n_classes,
+        n_classes=n_classes,
         encoding_size=args.ar_dim,
         epochs=args.epochs_classifier,
         args=args,
     )
 
-    tuner.fit(representations["train"])
+    train_dl = DataLoader(representations["train"], batch_size=args.batch_size, shuffle=True)
+    val_dl = DataLoader(representations["val"], batch_size=args.batch_size, shuffle=False)
+    test_dl = DataLoader(representations["test"], batch_size=args.batch_size, shuffle=False)
+
+    tuner.fit(train_dl)
     # y_pred = np.argmax(tuner.predict("test_dl").numpy(), axis=1)
 
     res = {
-        "train": tuner.score(dataloader=representations["train"], split="train"),
-        "val": tuner.score(dataloader=representations["val"], split="val"),
-        "test": tuner.score(dataloader=representations["test"], split="test"),
+        "train": tuner.score(dataloader=train_dl, split="train"),
+        "val": tuner.score(dataloader=val_dl, split="val"),
+        "test": tuner.score(dataloader=test_dl, split="test"),
     }
 
     if args.wandb:

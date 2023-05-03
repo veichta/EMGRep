@@ -1,9 +1,9 @@
 USR="veichta"
 DATA="/cluster/scratch/${USR}/nina_db"
 LR_CPC=2e-4
-AR_DIM=512
-AR_LAYERS=5
-ENC_DIM=512
+AR_DIM=256
+AR_LAYERS=2
+ENC_DIM=256
 
 TASK="none" # "none", "session", "subject", "label"
 

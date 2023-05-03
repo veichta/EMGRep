@@ -32,7 +32,6 @@ class EMGRepDataset(Dataset):
         """
         super().__init__()
 
-        self.mat_files = mat_files
         self.positive_mode = positive_mode
         self.seq_len = seq_len
         self.seq_stride = seq_stride
@@ -46,12 +45,17 @@ class EMGRepDataset(Dataset):
             "label",
         }, "Positive mode must be 'none', 'subject', 'session' or 'label'."
 
-        self.emg, self.stimulus, self.info = self._load_data()
+        self.emg, self.stimulus, self.info = self._load_data(mat_files)
 
         self.rng = np.random.default_rng(seed=42)
 
-    def _load_data(self):
+    def _load_data(
+        self, mat_files: List[Dict[str, Any]]
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Creates sequences from the data.
+
+        Args:
+            mat_files (List[Dict[str, Any]]): List containing the mat files.
 
         Returns:
             Tuple[np.ndarray, np.ndarray, np.ndarray]: EMG, stimulus and info.
@@ -60,7 +64,7 @@ class EMGRepDataset(Dataset):
         stimulus = []
         info = []
 
-        for mat_file in self.mat_files:
+        for mat_file in mat_files:
             signal = mat_file["emg"]
             label = mat_file["restimulus"]
 

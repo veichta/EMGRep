@@ -25,15 +25,27 @@ class RepresentationDataset(Dataset):
         """
         super().__init__()
         self.data, self.labels = self._extract_representations(model, dataloader, args)
+        logging.debug(f"Data shape:   {self.data.shape}")
+        logging.debug(f"Labels shape: {self.labels.shape}")
 
-        try:
-            import numpy as np
+        # map labels to 0, 1, 2, ...
+        self.actual_labels = torch.unique(self.labels).to(torch.int64).numpy()
+        logging.debug(
+            f"Mapping labels {list(self.actual_labels)} to {list(range(len(self.actual_labels)))}"
+        )
+        self.label_map = {label: i for i, label in enumerate(self.actual_labels)}
+        self.labels = torch.tensor(
+            [[self.label_map[c.item()] for c in labels] for labels in self.labels]
+        )
 
-            vals = np.array([x.numpy() for x in self.labels]).flatten().astype(np.int8)
-            logging.warning(np.unique(vals))
-        except Exception:
-            # WTF?
-            logging.warning("Heterogeneous labels received from dataloader")
+        # try:
+        #     import numpy as np
+
+        #     vals = np.array([x.numpy() for x in self.labels]).flatten().astype(np.int8)
+        #     logging.warning(np.unique(vals))
+        # except Exception:
+        #     # WTF?
+        #     logging.warning("Heterogeneous labels received from dataloader")
 
     def _extract_representations(
         self, model: CPCModel, dataloader: torch.utils.data.DataLoader, args: Namespace
@@ -54,16 +66,17 @@ class RepresentationDataset(Dataset):
         # @TODO test
         # @TODO where do we add the labels? Do they need resampling?
         model.to(args.device)
+        model.eval()
         with torch.no_grad():
-            # takes the 2nd output of the model (which is c) and the first sample of all pairs as
-            # DATA and the first label of the last sample of label pairs as label
-            # (one lbl per block)
-            return zip(
-                *(
-                    (model(x.to(args.device))[1][:, 0], y[:, 0, :, -1, 0])
-                    for x, y, _ in tqdm(dataloader, desc="Generating Embeddings")
-                )
-            )
+            representations = []
+            labels = []
+            for x, y, _ in tqdm(dataloader, desc="Generating Embeddings", ncols=100):
+                representation = model(x.to(args.device))[1][:, 0, :]
+                label = y[:, 0, :, -1, 0]
+                representations.append(representation)
+                labels.append(label)
+
+            return torch.cat(representations), torch.cat(labels).to(torch.int64)
 
     def __len__(self) -> int:
         """Return the length of the dataset."""
