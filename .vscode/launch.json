@@ -13,16 +13,21 @@
                 "256",
                 "--ar_dim",
                 "256",
-                "--n_subjects",
-                "3",
+                // "--n_subjects",
+                // "1",
+                // "--n_days",
+                // "3",
+                "--split_mode",
+                "day",
                 "--val_idx",
-                "2",
+                "1",
                 "--test_idx",
-                "3",
+                "2",
                 "--lr_cpc",
                 "2e-4",
                 "--positive_mode",
-                "label"
+                "subject",
+                "--debug"
             ]
         },
         {
