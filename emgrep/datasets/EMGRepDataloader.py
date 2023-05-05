@@ -54,7 +54,8 @@ class EMGRepDataloader:
             normalize (bool, optional): Whether to standardize features to zero mean
                 and unit variance (as last preprocessing step). Defaults to True.
             preprocessing (str, optional): What type of preprocessing to apply.
-                Should be one of [None, "rms"], defaults to RMS amplitude smoothing
+                Should be one of [None, "rms", "savgol", "hilbert"],
+                defaults to RMS amplitude smoothing
         """
         super().__init__()
         self.data_path = data_path

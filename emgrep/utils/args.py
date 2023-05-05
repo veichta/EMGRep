@@ -119,7 +119,7 @@ def parse_args() -> argparse.Namespace:
         "--preprocessing",
         type=str,
         default=None,
-        choices=[None, "rms"],
+        choices=[None, "rms", "savgol", "hilbert"],
     )
 
     # MODEL

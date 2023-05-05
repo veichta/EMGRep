@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from emgrep.utils.preprocessing import rms_preprocess
+from emgrep.utils.preprocessing import hilbert_envelope, rms_preprocess, savgol_preprocess
 
 
 class EMGRepDataset(Dataset):
@@ -36,7 +36,8 @@ class EMGRepDataset(Dataset):
             normalize (bool, optional): Whether to standardize features to zero mean
                 and unit variance (as last preprocessing step). Defaults to True.
             preprocessing (str, optional): What type of preprocessing to apply.
-                Should be one of [None, "rms"], defaults to RMS amplitude smoothing
+                Should be one of [None, "rms", "savgol", "hilbert"],
+                defaults to RMS amplitude smoothing
         """
         super().__init__()
 
@@ -76,6 +77,11 @@ class EMGRepDataset(Dataset):
 
             if self.preprocessing == "rms":
                 signal = rms_preprocess(signal)
+            elif self.preprocessing == "savgol":
+                signal = savgol_preprocess(signal)
+            elif self.preprocessing == "hilbert":
+                signal = hilbert_envelope(signal)
+
             if self.normalize:
                 signal -= signal.mean(axis=0)[None, :]
                 signal /= 1e-8 + signal.std(axis=0)[None, :]
