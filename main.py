@@ -9,7 +9,7 @@ from emgrep.datasets.EMGRepDataloader import get_dataloader
 from emgrep.datasets.RepresentationsDataset import RepresentationDataset
 
 # from emgrep.train_classifier import train_classifier
-from emgrep.train_classifier_new import train_classifier
+from emgrep.train_classifier import train_classifier
 from emgrep.train_cpc import train_cpc
 from emgrep.utils.utils import cleanup, setup
 
