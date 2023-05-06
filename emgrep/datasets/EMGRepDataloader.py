@@ -191,7 +191,7 @@ def get_split(
     day_range = range(1, args.n_days + 1)
     time_range = range(1, args.n_times + 1)
 
-    if args.positive_mode in ["none", "session", "subject"]:
+    if args.split_mode == "day":
         assert args.val_idx in day_range, f"Invalid val index: {args.val_idx}"
         assert args.test_idx in day_range, f"Invalid test index: {args.test_idx}"
         train_split = [
@@ -213,7 +213,7 @@ def get_split(
             for day in [args.test_idx]
             for time in time_range
         ]
-    elif args.positive_mode == "label":
+    elif args.split_mode == "subject":
         assert args.val_idx in subject_range, f"Invalid val index: {args.val_idx}"
         assert args.test_idx in subject_range, f"Invalid test index: {args.test_idx}"
         train_split = [

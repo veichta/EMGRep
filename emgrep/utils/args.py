@@ -61,6 +61,13 @@ def parse_args() -> argparse.Namespace:
         help="Whether to use self or subject as positive class.",
     )
     parser.add_argument(
+        "--split_mode",
+        type=str,
+        default="day",
+        choices=["day", "subject"],
+        help="Whether to generate train/val/test splits by day or subject.",
+    )
+    parser.add_argument(
         "--val_idx",
         type=int,
         default=1,
@@ -133,6 +140,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=5,
         help="Number of steps for contrastive prediction.",
+    )
+    parser.add_argument(
+        "--cpc_alpha",
+        type=float,
+        default=0.5,
+        help="Weight for Extension of the CPC loss.",
     )
 
     # TRAINING CPC MODEL
