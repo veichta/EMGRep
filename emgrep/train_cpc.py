@@ -57,7 +57,10 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     logging.info("Training the model...")
 
     parameters = itertools.chain(encoder.parameters(), ar.parameters(), criterion.parameters())
-    optimizer = torch.optim.Adam(parameters, lr=args.lr_cpc, weight_decay=args.weight_decay_cpc)
+    # optimizer = torch.optim.Adam(parameters, lr=args.lr_cpc, weight_decay=args.weight_decay_cpc)
+    optimizer = torch.optim.SGD(
+        parameters, lr=args.lr_cpc, momentum=args.momentum_cpc, weight_decay=args.weight_decay_cpc
+    )
     # reduce on plateau
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.1, patience=5, verbose=True

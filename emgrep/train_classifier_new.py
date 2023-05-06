@@ -27,8 +27,8 @@ class LinearClassificationHead(nn.Module):
         """
         super(LinearClassificationHead, self).__init__()
         self.ffn = nn.Sequential(
-            # nn.Linear(input_size, input_size),
-            # nn.ReLU(),
+            nn.Linear(input_size, input_size),
+            nn.ReLU(),
             nn.Linear(input_size, output_size),
         )
 

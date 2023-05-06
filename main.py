@@ -45,10 +45,10 @@ def main(args: Namespace):
 
     # TODO: Evaluate representations
     train_classifier(representations, pred_block=-1, args=args)
-    train_classifier(representations, pred_block=-2, args=args)
-    train_classifier(representations, pred_block=-3, args=args)
-    train_classifier(representations, pred_block=-4, args=args)
-    train_classifier(representations, pred_block=-5, args=args)
+    # train_classifier(representations, pred_block=-2, args=args)
+    # train_classifier(representations, pred_block=-3, args=args)
+    # train_classifier(representations, pred_block=-4, args=args)
+    # train_classifier(representations, pred_block=-5, args=args)
 
     # TODO: Visualize representations
     # visualize_embeddings(representations, rep_dataloader, args)

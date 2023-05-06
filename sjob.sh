@@ -1,6 +1,6 @@
 USR="veichta"
 DATA="/cluster/scratch/${USR}/nina_db"
-LR_CPC=2e-4
+LR_CPC=2e-3
 AR_DIM=256
 AR_LAYERS=2
 ENC_DIM=256

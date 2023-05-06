@@ -105,7 +105,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--num_workers",
         type=int,
-        default=4,
+        default=0,
         help="Number of workers for dataloader.",
     )
 
@@ -147,6 +147,12 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=1e-2,
         help="Learning rate for training CPC.",
+    )
+    parser.add_argument(
+        "--momentum_cpc",
+        type=float,
+        default=0.9,
+        help="Momentum for training CPC.",
     )
     parser.add_argument(
         "--weight_decay_cpc",
