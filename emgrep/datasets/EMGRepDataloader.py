@@ -134,12 +134,13 @@ class EMGRepDataloader:
         return train_loader, val_loader, test_loader
 
 
-def get_dataloader(args: Namespace, block_stride: bool = False) -> Dict[str, DataLoader]:
+def get_dataloader(args: Namespace, extract_rep_mode: bool = False) -> Dict[str, DataLoader]:
     """Get the dataloaders.
 
     Args:
         args (Namespace): Command line arguments.
-        block_stride (bool, optional): Whether to use block len as stride. Defaults to False.
+        extract_rep_mode (bool, optional): Whether to use block len as stride since we want to
+        extract c_t for each block. Defaults to False.
 
     Returns:
         Dict[str, DataLoader]: Train, val, and test dataloaders.
@@ -153,10 +154,10 @@ def get_dataloader(args: Namespace, block_stride: bool = False) -> Dict[str, Dat
         test_data=test_split,
         positive_mode=args.positive_mode,
         seq_len=args.seq_len,
-        seq_stride=args.block_len if block_stride else args.seq_stride,
+        seq_stride=args.block_len if extract_rep_mode else args.seq_stride,
         block_len=args.block_len,
         block_stride=args.block_stride,
-        batch_size=args.batch_size,
+        batch_size=args.batch_size_cpc,
         num_workers=args.num_workers,
     )
 

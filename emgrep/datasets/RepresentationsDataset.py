@@ -38,15 +38,6 @@ class RepresentationDataset(Dataset):
             [[self.label_map[c.item()] for c in labels] for labels in self.labels]
         )
 
-        # try:
-        #     import numpy as np
-
-        #     vals = np.array([x.numpy() for x in self.labels]).flatten().astype(np.int8)
-        #     logging.warning(np.unique(vals))
-        # except Exception:
-        #     # WTF?
-        #     logging.warning("Heterogeneous labels received from dataloader")
-
     def _extract_representations(
         self, model: CPCModel, dataloader: torch.utils.data.DataLoader, args: Namespace
     ) -> torch.Tensor:
@@ -63,8 +54,6 @@ class RepresentationDataset(Dataset):
         Returns:
             torch.Tensor: Extracted representations.
         """
-        # @TODO test
-        # @TODO where do we add the labels? Do they need resampling?
         model.to(args.device)
         model.eval()
         with torch.no_grad():

@@ -29,29 +29,19 @@ def main(args: Namespace):
     del cpc_dataloaders
 
     # TODO: Extract representations
-    rep_dataloader = get_dataloader(args, block_stride=True)
+    rep_dataloader = get_dataloader(args, extract_rep_mode=True)
     representations = {
         "train": RepresentationDataset(model=model, dataloader=rep_dataloader["train"], args=args),
         "val": RepresentationDataset(model=model, dataloader=rep_dataloader["val"], args=args),
         "test": RepresentationDataset(model=model, dataloader=rep_dataloader["test"], args=args),
     }
-    # representations = {}
-    # for phase in ["train", "val", "test"]:
-    #     representations[phase] = RepresentationDataset(
-    #         model=model, dataloader=rep_dataloader[phase], args=args
-    #     )
-    #     del representations[phase]
     del rep_dataloader
 
     # TODO: Evaluate representations
     train_classifier(representations, pred_block=-1, args=args)
-    # train_classifier(representations, pred_block=-2, args=args)
-    # train_classifier(representations, pred_block=-3, args=args)
-    # train_classifier(representations, pred_block=-4, args=args)
-    # train_classifier(representations, pred_block=-5, args=args)
 
     # TODO: Visualize representations
-    # visualize_embeddings(representations, rep_dataloader, args)
+    # visualize_embeddings(representations, args)
 
     end = time.time()
     elapsed = datetime.timedelta(seconds=end - start)

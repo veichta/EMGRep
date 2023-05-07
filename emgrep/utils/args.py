@@ -104,12 +104,6 @@ def parse_args() -> argparse.Namespace:
         help="Stride of block in sequence.",
     )
     parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=64,
-        help="Batch size for dataloader.",
-    )
-    parser.add_argument(
         "--num_workers",
         type=int,
         default=0,
@@ -150,15 +144,28 @@ def parse_args() -> argparse.Namespace:
 
     # TRAINING CPC MODEL
     parser.add_argument(
+        "--optimizer_cpc",
+        type=str,
+        default="adam",
+        choices=["adam", "sgd"],
+        help="Optimizer for training CPC.",
+    )
+    parser.add_argument(
         "--epochs_cpc",
         type=int,
-        default=100,
+        default=300,
         help="Number of epochs for training CPC.",
+    )
+    parser.add_argument(
+        "--batch_size_cpc",
+        type=int,
+        default=256,
+        help="Batch size for dataloader.",
     )
     parser.add_argument(
         "--lr_cpc",
         type=float,
-        default=1e-2,
+        default=2e-3,
         help="Learning rate for training CPC.",
     )
     parser.add_argument(
@@ -172,6 +179,18 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.0,
         help="Weight decay for training CPC.",
+    )
+    parser.add_argument(
+        "--patience_lr_cpc",
+        type=int,
+        default=10,
+        help="Patience for learning rate scheduler.",
+    )
+    parser.add_argument(
+        "--patience_stopping_cpc",
+        type=int,
+        default=20,
+        help="Patience for early stopping.",
     )
 
     # TRAINING CLASSIFIER
@@ -190,15 +209,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--batch_size_classifier",
         type=int,
-        default=64,
+        default=256,
         help="Batch Size for training classifier.",
     )
-    # parser.add_argument(
-    #     "--n_classes",
-    #     type=int,
-    #     default=12,
-    #     help="Number of classes classifier.",
-    # )
 
     # LOGGING
     parser.add_argument(

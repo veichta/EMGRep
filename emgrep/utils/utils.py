@@ -50,7 +50,6 @@ def setup_logging(args: argparse.Namespace):
     )
 
     # Suppress logging from other modules
-    # logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
     if args.wandb:

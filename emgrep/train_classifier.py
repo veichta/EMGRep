@@ -1,4 +1,4 @@
-"""Implementation of the training loop for classifier."""
+"""Implementation of the training loop for classification head."""
 
 import datetime
 import logging
@@ -18,18 +18,20 @@ from tqdm import tqdm
 class LinearClassificationHead(nn.Module):
     """Architectural functionality for logistic regression."""
 
-    def __init__(self, input_size: int, output_size: int):
+    def __init__(self, input_size: int, hidden_size: int, output_size: int):
         """Initializes the Classification Head.
 
         Args:
             input_size (int): Input size.
+            hidden_size (int): Hidden size.
             output_size (int): Output size.
+
         """
         super(LinearClassificationHead, self).__init__()
         self.ffn = nn.Sequential(
-            nn.Linear(input_size, input_size),
+            nn.Linear(input_size, hidden_size),
             nn.ReLU(),
-            nn.Linear(input_size, output_size),
+            nn.Linear(hidden_size, output_size),
         )
 
         self.softmax = nn.Softmax(dim=1)
@@ -60,12 +62,20 @@ def train_classifier(representations: Dict[str, Dataset], pred_block: int, args:
     logging.debug(f"Number of classes: {n_classes}")
 
     # define data loaders
-    train_dl = DataLoader(representations["train"], batch_size=args.batch_size, shuffle=True)
-    val_dl = DataLoader(representations["val"], batch_size=args.batch_size, shuffle=False)
-    test_dl = DataLoader(representations["test"], batch_size=args.batch_size, shuffle=False)
+    train_dl = DataLoader(
+        representations["train"], batch_size=args.batch_size_classifier, shuffle=True
+    )
+    val_dl = DataLoader(
+        representations["val"], batch_size=args.batch_size_classifier, shuffle=False
+    )
+    test_dl = DataLoader(
+        representations["test"], batch_size=args.batch_size_classifier, shuffle=False
+    )
 
     # define model
-    model = LinearClassificationHead(input_size=args.ar_dim, output_size=n_classes)
+    model = LinearClassificationHead(
+        input_size=args.ar_dim, hidden_size=4 * args.ar_dim, output_size=n_classes
+    )
 
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -345,5 +355,6 @@ def report(
 
     cf = confusion_matrix(targets, predictions)
     logging.info(f"{split.capitalize()} confusion matrix:\n{cf}")
+    # TODO: Plot confusion matrix?
 
     return report
