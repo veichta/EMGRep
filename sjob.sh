@@ -1,4 +1,3 @@
-USR="veichta"
 DATA="/cluster/scratch/${USR}/nina_db"
 LR_CPC=2e-4
 AR_DIM=256
@@ -26,7 +25,7 @@ for SPLIT in 1 2 3 4 5; do
         --gres=gpumem:10240m \
         --gpus=1 \
         --mail-type=ALL \
-        --mail-user="${USR}@ethz.ch" \
+        --mail-user="${USER}@ethz.ch" \
         --output="logs/${POSITIVE_MODE}-split-${SPLIT}.txt" \
         --wrap="python main.py --data ${DATA}/data/01_raw --device cuda --debug --wandb --log_dir ${DATA}/logs --lr_cpc ${LR_CPC} --test_idx ${TEST_IDX} --val_idx ${VAL_IDX} --positive_mode ${POSITIVE_MODE} --encoder_dim ${ENC_DIM} --ar_dim ${AR_DIM} --ar_layers ${AR_LAYERS} --split_mode ${SPLIT_MODE}"
 done
