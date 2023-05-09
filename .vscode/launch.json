@@ -31,6 +31,36 @@
             ]
         },
         {
+            "name": "Alex main.py",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "justMyCode": true,
+            "args": [
+                "--num_workers",
+                "0",
+                "--encoder_dim",
+                "256",
+                "--ar_dim",
+                "256",
+                "--n_subjects",
+                "1",
+                "--n_days",
+                "3",
+                "--split_mode",
+                "day",
+                "--val_idx",
+                "1",
+                "--test_idx",
+                "2",
+                "--lr_cpc",
+                "2e-4",
+                "--positive_mode",
+                "subject",
+                "--debug"
+            ]
+        },
+        {
             "name": "supervised",
             "type": "python",
             "request": "launch",

@@ -67,17 +67,32 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     logging.info("Training the model...")
 
     parameters = itertools.chain(encoder.parameters(), ar.parameters(), criterion.parameters())
-    optimizer = torch.optim.Adam(parameters, lr=args.lr_cpc, weight_decay=args.weight_decay_cpc)
-    # reduce on plateau
+
+    if args.optimizer_cpc == "sgd":
+        optimizer = torch.optim.SGD(
+            parameters,
+            lr=args.lr_cpc,
+            momentum=args.momentum_cpc,
+            weight_decay=args.weight_decay_cpc,
+        )
+    elif args.optimizer_cpc == "adam":
+        optimizer = torch.optim.Adam(
+            parameters,
+            lr=args.lr_cpc,
+            weight_decay=args.weight_decay_cpc,
+        )
+    else:
+        raise ValueError(f"Unknown optimizer {args.optimizer_cpc}")
+
+    # Reduce on plateau
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.1, patience=5, verbose=True
+        optimizer, mode="min", factor=0.1, patience=args.patience_lr_cpc, verbose=True
     )
-    # early stopping init
+    # Early stopping init
     best_loss = np.inf
     epochs_no_improve = 0
-    patience = 10
 
-    # TODO: Train model
+    # Train model
     metrics: Dict[str, Any] = {"train": {}, "val": {}, "test": {}}
     for epoch in range(args.epochs_cpc):
         metrics["train"][epoch] = train_one_epoch_cpc(
@@ -109,7 +124,7 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
         else:
             epochs_no_improve += 1
 
-        if epochs_no_improve == patience:  # TODO: parametrize patience
+        if epochs_no_improve == args.patience_stopping_cpc:
             logging.info(f"Early stopping at epoch {epoch+1}")
             break
 
