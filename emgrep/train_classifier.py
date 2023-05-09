@@ -2,7 +2,6 @@
 
 import datetime
 import logging
-import os
 import time
 from argparse import Namespace
 from typing import Any, Dict
@@ -12,6 +11,7 @@ import numpy as np
 import torch
 import torchmetrics
 import wandb
+from einops import rearrange
 from sklearn.metrics import classification_report
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
@@ -29,17 +29,84 @@ class LinearClassificationHead(torch.nn.Module):
         """
         super(LinearClassificationHead, self).__init__()
         self.linear = torch.nn.Linear(input_size, output_size)
-        # self.softmax = torch.nn.Softmax(axis=1)
 
     def forward(self, x: torch.tensor):
         """Forward pass.
 
         Args:
             x (torch.tensor): Input tensor.
+
+        Returns:
+            torch.tensor: Class logits per block. (batch size, #classes, n_blocks)
+                -> compatible with torch crossentropy criterion
         """
         out = self.linear(x)
-        out = torch.softmax(out, axis=1)
-        return out
+        out = torch.softmax(out, axis=-1)
+        return rearrange(out, "Bs B C -> Bs C B")
+
+
+class MLPClassificationHead(torch.nn.Module):
+    """Architectural functionality for logistic regression."""
+
+    def __init__(self, input_size: int, output_size: int):
+        """Initializes the Classification Head.
+
+        Args:
+            input_size (int): Input size.
+            output_size (int): Output size.
+        """
+        super(MLPClassificationHead, self).__init__()
+        self.mlp = torch.nn.Sequential(
+            torch.nn.Linear(input_size, input_size),
+            torch.nn.Dropout(0.1),
+            torch.nn.ReLU(),
+            torch.nn.Linear(input_size, output_size),
+            torch.nn.Dropout(0.1),
+        )
+
+    def forward(self, x: torch.tensor):
+        """Forward pass.
+
+        Args:
+            x (torch.tensor): Input tensor.
+
+        Returns:
+            torch.tensor: Class logits per block. (batch size, #classes, n_blocks)
+                -> compatible with torch crossentropy criterion
+        """
+        logits = self.mlp(x)
+        out = torch.softmax(logits, axis=-1)
+        return rearrange(out, "Bs B C -> Bs C B")
+
+
+class GRUClassificationHead(torch.nn.Module):
+    """Architectural functionality for 1-layer GRU over block encodings + logistic regression."""
+
+    def __init__(self, input_size: int, output_size: int):
+        """Initializes the Classification Head.
+
+        Args:
+            input_size (int): Input size.
+            output_size (int): Output size.
+        """
+        super(GRUClassificationHead, self).__init__()
+        self.gru = torch.nn.GRU(input_size, input_size, num_layers=1, batch_first=True, dropout=0.1)
+        self.project_out = torch.nn.Linear(input_size, output_size)
+
+    def forward(self, x: torch.tensor):
+        """Forward pass.
+
+        Args:
+            x (torch.tensor): Input tensor.
+
+        Returns:
+            torch.tensor: Class logits per block. (batch size, #classes, n_blocks)
+                -> compatible with torch crossentropy criterion
+        """
+        x, _ = self.gru(x)
+        out = self.project_out(x)
+        out = torch.softmax(out, axis=-1)
+        return rearrange(out, "Bs B C -> Bs C B")
 
 
 class DownstreamTuner:
@@ -64,20 +131,23 @@ class DownstreamTuner:
         """
         self.n_classes = n_classes
         self.encoding_size = encoding_size
-        self.head = LinearClassificationHead(encoding_size, n_classes)
+        self.head = GRUClassificationHead(encoding_size, n_classes)
         self.lr = lr
         self.epochs = epochs
         self.device = args.device
         self.args = args
 
-    def fit(self, dataloader: DataLoader) -> DataLoader:
-        """Fits a linear log-reg model on the given training set for a fixed number of epochs.
+    def fit(self, train_dataloader: DataLoader, val_dataloader: DataLoader) -> DataLoader:
+        """Fits a classification head on the given training set for a fixed number of epochs.
 
         Args:
-            dataloader (DataLoader): A dataloader delivering tuples of type (embed_1d, class_label).
+            train_dataloader (DataLoader): A dataloader delivering tuples of type
+                shape: (embed_1d, class_label).
+            val_dataloader (DataLoader): A dataloader delivering tuples of type
+                shape: (embed_1d, class_label).
 
         Returns:
-            DataLoader: The fitted dataloader.
+            DownstreamTuner: Instance of itself, fitted.
         """
         # TODO: Do we want the full [train until cvg w.r.t val set] setup?
         self.head.to(self.device)
@@ -94,31 +164,38 @@ class DownstreamTuner:
 
         for _ in pbar:
             ep_loss = []
-            for x, y in dataloader:
+            for x, y in train_dataloader:
                 optimizer.zero_grad()
                 # @TODO how do we want to handle sequences? Curr: Just flatten
-                x = torch.reshape(x.to(self.device), (-1, self.encoding_size))
-                y = torch.reshape(y.long().to(self.device), (-1,))
-                outputs = self.head(x)
-                loss = criterion(outputs, y)
+                # x = torch.reshape(x.to(self.device), (-1, self.encoding_size))
+                # y = torch.reshape(y.long().to(self.device), (-1,))
+                outputs = self.head(x.to(self.device))
+                loss = criterion(outputs, y.to(self.device).long())
+
+                if self.args.wandb:
+                    wandb.log({"cls_train_loss": loss.item()})
                 loss.backward()
                 optimizer.step()
                 scheduler.step()
 
                 ep_loss.append(loss.item())
 
-            pbar.set_postfix({"loss": np.mean(ep_loss)})
             losses.append(np.mean(ep_loss))
 
-        plt.title("training loss")
-        plt.plot(losses, label="loss")
+            val_loss = []
+            with torch.no_grad():
+                for x, y in val_dataloader:
+                    # x = torch.reshape(x.to(self.device), (-1, self.encoding_size))
+                    # y = torch.reshape(y.long().to(self.device), (-1,))
+                    outputs = self.head(x.to(self.device))
+                    loss = criterion(outputs, y.to(self.device).long())
 
-        plt.xlabel("epoch")
-        plt.ylabel("loss")
-        plt.legend()
+                    if self.args.wandb:
+                        wandb.log({"cls_val_loss": loss.item()})
 
-        plt.savefig(os.path.join(self.args.log_dir, "classification_loss.png"))
-        plt.close()
+                    val_loss.append(loss.item())
+
+            pbar.set_postfix({"loss": np.mean(ep_loss), "val_loss": np.mean(val_loss)})
 
         return self
 
@@ -134,10 +211,7 @@ class DownstreamTuner:
         with torch.no_grad():
             self.head.to(self.device)
             return torch.cat(
-                [
-                    self.head(torch.reshape(x.to(self.device), (-1, self.encoding_size)))
-                    for x, y in dataloader
-                ],
+                [self.head(x.to(self.device)) for x, y in dataloader],
                 dim=0,
             )
 
@@ -154,7 +228,7 @@ class DownstreamTuner:
         roc_fn = torchmetrics.AUROC(task="multiclass", num_classes=self.n_classes).cpu()
 
         pred = self.predict(dataloader).cpu()
-        # TODO: how do we want to handle sequences? Curr: Just flatten
+        pred = rearrange(pred, "Bs C B -> (Bs B) C")  # TODO: evaluate on last one only, fix strides
         y = torch.flatten(torch.cat([_y for x, _y in dataloader], dim=0)).cpu().long()
 
         pred_classes = torch.argmax(pred, axis=1)
@@ -217,7 +291,7 @@ def train_classifier(
         args=args,
     )
 
-    tuner.fit(representations["train"])
+    tuner.fit(representations["train"], val_dataloader=representations["val"])
     # y_pred = np.argmax(tuner.predict("test_dl").numpy(), axis=1)
 
     res = {
@@ -235,16 +309,6 @@ def train_classifier(
 
         for metric, val in res["test"].items():
             wandb.log({f"linear-test-{metric}": val})
-
-    # TODO: Train classifier
-
-    # metrics = {"train": {}, "val": {}, "test": {}}
-    # for epoch in range(args.epochs_classifier):
-    #     train_one_epoch_classifier(...)
-    #     validate_classifier(...)
-    #     save_checkpoint_classifier(...)
-
-    # test_classifier(...)
 
     end = time.time()
     elapsed = datetime.timedelta(seconds=end - start)

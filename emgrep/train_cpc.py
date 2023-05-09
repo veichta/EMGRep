@@ -13,8 +13,7 @@ import numpy as np
 import torch
 import wandb
 from torch.utils.data import DataLoader
-
-# from torchinfo import summary
+from torchinfo import summary
 from tqdm import tqdm
 
 from emgrep.criterion import CPCCriterion
@@ -50,9 +49,9 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
 
     # logging.info("Encoder Architecture:")
     # # TODO: parametrize shape
-    # summary(encoder, (args.batch_size, 1, 10, 300, 16))
+    summary(encoder, (args.batch_size, 2, 10, 300, 16))
     # logging.info("AR head")
-    # summary(ar, (args.batch_size, 1, 10, 256))
+    summary(ar, (args.batch_size, 1, 10, args.encoder_dim))
 
     logging.info("Training the model...")
 
