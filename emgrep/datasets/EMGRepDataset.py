@@ -41,7 +41,6 @@ class EMGRepDataset(Dataset):
         """
         super().__init__()
 
-        self.mat_files = mat_files
         self.positive_mode = positive_mode
         self.seq_len = seq_len
         self.seq_stride = seq_stride
@@ -57,12 +56,17 @@ class EMGRepDataset(Dataset):
             "label",
         }, "Positive mode must be 'none', 'subject', 'session' or 'label'."
 
-        self.emg, self.stimulus, self.info = self._load_data()
+        self.emg, self.stimulus, self.info = self._load_data(mat_files)
 
         self.rng = np.random.default_rng(seed=42)
 
-    def _load_data(self):
+    def _load_data(
+        self, mat_files: List[Dict[str, Any]]
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Creates sequences from the data.
+
+        Args:
+            mat_files (List[Dict[str, Any]]): List containing the mat files.
 
         Returns:
             Tuple[np.ndarray, np.ndarray, np.ndarray]: EMG, stimulus and info.
@@ -71,7 +75,7 @@ class EMGRepDataset(Dataset):
         stimulus = []
         info = []
 
-        for mat_file in self.mat_files:
+        for mat_file in mat_files:
             signal = mat_file["emg"]
             label = mat_file["restimulus"]
 
@@ -96,7 +100,7 @@ class EMGRepDataset(Dataset):
                             mat_file["subj"][0, 0],
                             mat_file["daytesting"][0, 0],
                             mat_file["time"][0, 0],
-                            int(stimulus[-1][-1]),
+                            int(stimulus[-1][self.seq_len // 2]),
                         ]
                     )
                 )
@@ -126,6 +130,7 @@ class EMGRepDataset(Dataset):
 
         return np.stack(blocks)
 
+    # TODO: needs to be corrected
     def _sample_positive_seq(self, info: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Samples a positive sequence based on the positive mode.
 
@@ -134,20 +139,30 @@ class EMGRepDataset(Dataset):
 
         Returns:
             Tuple[np.ndarray, np.ndarray, np.ndarray]: EMG, stimulus, and info of positive sample.
-        """
-        assert self.positive_mode != "none", "Positive mode must not be 'none'."
 
-        stimulus_condition = self.stimulus[:, -1] == info[-1]
+        Notes:
+            The positive mode controls a subset of data the positive samples are drawn from. It can
+            be one of the following:
+                - subject: Positive samples must come from the same subject.
+                - session: Positive samples must come from the same session.
+                - label: No additional constraint.
+        """
+        assert self.positive_mode in {
+            "subject",
+            "session",
+            "label",
+        }, "Positive mode must be 'subject', 'session' or 'label'."
+
         if self.positive_mode == "subject":
-            positive_mode_condition = self.info[:, 0] == info[0]
+            positive_mode_condition = np.all(self.info[:, [0, 3]] == info[[0, 3]], axis=1)
 
         if self.positive_mode == "session":
             positive_mode_condition = np.all(self.info == info, axis=1)
 
         if self.positive_mode == "label":
-            positive_mode_condition = self.stimulus[:, -1] == info[-1]
+            positive_mode_condition = self.info[:, -1] == info[-1]
 
-        positive_indices = np.logical_and(stimulus_condition, positive_mode_condition).nonzero()[0]
+        positive_indices = positive_mode_condition.nonzero()[0]
         positive_idx = self.rng.choice(positive_indices)
 
         return self.emg[positive_idx], self.stimulus[positive_idx], self.info[positive_idx]

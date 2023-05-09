@@ -24,12 +24,13 @@ class CPCCriterion(nn.Module):
         self.infonce = InfoNCE()
         self.linear = nn.ModuleList([nn.Linear(cDim, zDim) for _ in range(k)])
 
-    def forward(self, z: torch.Tensor, c: torch.Tensor) -> torch.Tensor:
+    def forward(self, z: torch.Tensor, c: torch.Tensor, stimulus=None) -> torch.Tensor:
         """Compute loss for CPC model.
 
         Args:
             z (torch.Tensor): Encoded batch, shape (batchSize, 1 (or 2), zDim, seqLen)
             c (torch.Tensor): Autoregressive output, shape (batchSize, 1 (or 2), cDim, seqLen)
+            stimulus (torch.Tensor, optional): Ignored. Exists for compatibility reasons.
 
         Returns:
             torch.Tensor: Loss for CPC model.
@@ -89,27 +90,35 @@ class ExtendedCPCCriterion(nn.Module):
         self.canonical_criterion = CPCCriterion(k, zDim, cDim)
         self.linear = nn.Linear(zDim, zDim)
 
-    def forward(self, z: torch.Tensor, c: torch.Tensor) -> torch.Tensor:
+    def forward(self, z: torch.Tensor, c: torch.Tensor, stimulus: torch.Tensor) -> torch.Tensor:
         """Compute loss for CPC model.
 
         Args:
             z (torch.Tensor): Encoded batch, shape (batchSize, 2, zDim, seqLen)
             c (torch.Tensor): Autoregressive output, shape (batchSize, 2, cDim, seqLen)
+            stimulus (torch.Tensor): Stimulus for the batch, shape (batchSize, 2, seqLen)
 
         Returns:
             torch.Tensor: Loss for CPC model.
         """
         assert z.shape[1] == 2, f"z's second dimension must have size 2, but got {z.shape[1]}"
         assert c.shape[1] == 2, f"c's second dimension must have size 2, but got {c.shape[1]}"
+        assert (
+            stimulus.shape[1] == 2
+        ), f"stimulus's second dimension must have size 2, but got {stimulus.shape[1]}"
 
         if self.mode == "z":
-            anchor = z[:, 0, :, :].flatten(0, 1)
-            positive = self.ext_linear(z[:, 1, :, :].flatten(0, 1))
+            anchor_prop = z[:, 0, :, :].flatten(0, 1)
+            positive_prop = self.linear(z[:, 1, :, :].flatten(0, 1))
         elif self.mode == "c":
-            anchor = c[:, 0, :, :].flatten(0, 1)
-            positive = self.ext_linear(c[:, 1, :, :].flatten(0, 1))
+            anchor_prop = c[:, 0, :, :].flatten(0, 1)
+            positive_prop = self.linear(c[:, 1, :, :].flatten(0, 1))
         else:
             raise ValueError(f"mode must be 'z' or 'c', but got {self.mode}")
-        ext_loss = self.infonce(anchor, positive)
+        anchor_label = stimulus[:, 0, :, -1, 0].flatten(0, 1)
+        positive_label = stimulus[:, 1, :, -1, 0].flatten(0, 1)
+        condition = anchor_label == positive_label
+
+        ext_loss = self.infonce(anchor_prop[condition], positive_prop[condition])
 
         return self.canonical_criterion(z, c) + self.alpha * ext_loss

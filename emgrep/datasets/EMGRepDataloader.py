@@ -97,7 +97,7 @@ class EMGRepDataloader:
                 time=time,
                 data_path=str(self.data_path),
             )
-            for subject, day, time in tqdm(data)
+            for subject, day, time in tqdm(data, desc=f"Loading {mode} dataset", ncols=100)
         ]
         return EMGRepDataset(
             mat_files=mat_files,
@@ -145,11 +145,13 @@ class EMGRepDataloader:
         return train_loader, val_loader, test_loader
 
 
-def get_dataloader(args: Namespace) -> Dict[str, DataLoader]:
+def get_dataloader(args: Namespace, extract_rep_mode: bool = False) -> Dict[str, DataLoader]:
     """Get the dataloaders.
 
     Args:
         args (Namespace): Command line arguments.
+        extract_rep_mode (bool, optional): Whether to use block len as stride since we want to
+        extract c_t for each block. Defaults to False.
 
     Returns:
         Dict[str, DataLoader]: Train, val, and test dataloaders.
@@ -163,10 +165,10 @@ def get_dataloader(args: Namespace) -> Dict[str, DataLoader]:
         test_data=test_split,
         positive_mode=args.positive_mode,
         seq_len=args.seq_len,
-        seq_stride=args.seq_stride,
+        seq_stride=args.block_len if extract_rep_mode else args.seq_stride,
         block_len=args.block_len,
         block_stride=args.block_stride,
-        batch_size=args.batch_size,
+        batch_size=args.batch_size_cpc,
         num_workers=args.num_workers,
         normalize=args.normalize,
         preprocessing=args.preprocessing,
@@ -203,7 +205,7 @@ def get_split(
     day_range = range(1, args.n_days + 1)
     time_range = range(1, args.n_times + 1)
 
-    if args.positive_mode in ["none", "session", "subject"]:
+    if args.split_mode == "day":
         assert args.val_idx in day_range, f"Invalid val index: {args.val_idx}"
         assert args.test_idx in day_range, f"Invalid test index: {args.test_idx}"
         train_split = [
@@ -225,7 +227,7 @@ def get_split(
             for day in [args.test_idx]
             for time in time_range
         ]
-    elif args.positive_mode == "label":
+    elif args.split_mode == "subject":
         assert args.val_idx in subject_range, f"Invalid val index: {args.val_idx}"
         assert args.test_idx in subject_range, f"Invalid test index: {args.test_idx}"
         train_split = [
