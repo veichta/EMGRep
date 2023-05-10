@@ -6,17 +6,18 @@ import logging
 import os
 import time
 from argparse import Namespace
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import wandb
 from torch.utils.data import DataLoader
-from torchinfo import summary
+
+# from torchinfo import summary
 from tqdm import tqdm
 
-from emgrep.criterion import CPCCriterion
+from emgrep.criterion import CPCCriterion, ExtendedCPCCriterion
 from emgrep.models.cpc_model import CPCAR, CPCEncoder, CPCModel
 
 
@@ -48,7 +49,17 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
         model=args.ar_model,
     )
     cpc_model = CPCModel(encoder=encoder, ar=ar)
-    criterion = CPCCriterion(k=args.cpc_k, zDim=args.encoder_dim, cDim=args.ar_dim)
+
+    if args.positive_mode == "none":
+        criterion = CPCCriterion(k=args.cpc_k, zDim=args.encoder_dim, cDim=args.ar_dim)
+    else:
+        criterion = ExtendedCPCCriterion(
+            k=args.cpc_k,
+            zDim=args.encoder_dim,
+            cDim=args.ar_dim,
+            mode="z",  # TODO: parametrize
+            alpha=args.cpc_alpha,
+        )
 
     n_params = sum(p.numel() for p in cpc_model.parameters() if p.requires_grad)
     logging.info(f"Number of trainable parameters: {n_params/1e6:.2f}M")
@@ -59,24 +70,39 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
 
     # logging.info("Encoder Architecture:")
     # # TODO: parametrize shape
-    summary(encoder, (args.batch_size, 2, 10, 300, 16))
+    # summary(encoder, (args.batch_size, 2, 10, 300, 16))
     # logging.info("AR head")
     # summary(ar, (args.batch_size, 1, 10, args.encoder_dim))
 
     logging.info("Training the model...")
 
     parameters = itertools.chain(encoder.parameters(), ar.parameters(), criterion.parameters())
-    optimizer = torch.optim.Adam(parameters, lr=args.lr_cpc, weight_decay=args.weight_decay_cpc)
-    # reduce on plateau
+
+    if args.optimizer_cpc == "sgd":
+        optimizer = torch.optim.SGD(
+            parameters,
+            lr=args.lr_cpc,
+            momentum=args.momentum_cpc,
+            weight_decay=args.weight_decay_cpc,
+        )
+    elif args.optimizer_cpc == "adam":
+        optimizer = torch.optim.Adam(
+            parameters,
+            lr=args.lr_cpc,
+            weight_decay=args.weight_decay_cpc,
+        )
+    else:
+        raise ValueError(f"Unknown optimizer {args.optimizer_cpc}")
+
+    # Reduce on plateau
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.1, patience=5, verbose=True
+        optimizer, mode="min", factor=0.1, patience=args.patience_lr_cpc, verbose=True
     )
-    # early stopping init
+    # Early stopping init
     best_loss = np.inf
     epochs_no_improve = 0
-    patience = 10
 
-    # TODO: Train model
+    # Train model
     metrics: Dict[str, Any] = {"train": {}, "val": {}, "test": {}}
     for epoch in range(args.epochs_cpc):
         metrics["train"][epoch] = train_one_epoch_cpc(
@@ -108,7 +134,7 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
         else:
             epochs_no_improve += 1
 
-        if epochs_no_improve == patience:  # TODO: parametrize patience
+        if epochs_no_improve == args.patience_stopping_cpc:
             logging.info(f"Early stopping at epoch {epoch+1}")
             break
 
@@ -140,7 +166,7 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
 def train_one_epoch_cpc(
     model: CPCModel,
     dataloader: DataLoader,
-    criterion: CPCCriterion,
+    criterion: Union[CPCCriterion, ExtendedCPCCriterion],
     optimizer: torch.optim.Optimizer,
     epoch: int,
     args: Namespace,
@@ -163,10 +189,10 @@ def train_one_epoch_cpc(
     model.train()
     model.to(args.device)
     criterion.to(args.device)
-    for x, _, _ in pbar:
+    for emg, stimulus, _ in pbar:
         optimizer.zero_grad()
-        out = model(x.to(args.device))
-        loss = criterion(*out)
+        out = model(emg.to(args.device))
+        loss = criterion(*out, stimulus.to(args.device))
         loss.backward()
         optimizer.step()
 
@@ -182,7 +208,7 @@ def train_one_epoch_cpc(
 def validate_cpc(
     model: CPCModel,
     dataloader: DataLoader,
-    criterion: CPCCriterion,
+    criterion: Union[CPCCriterion, ExtendedCPCCriterion],
     epoch: int,
     args: Namespace,
 ) -> Dict[str, float]:
@@ -206,10 +232,10 @@ def validate_cpc(
     model.eval()
     criterion.eval()
     with torch.no_grad():
-        for x, y, _ in pbar:
-            out = model(x.to(args.device))
+        for emg, stimulus, _ in pbar:
+            out = model(emg.to(args.device))
 
-            loss = criterion(*out)
+            loss = criterion(*out, stimulus.to(args.device))
             losses.append(loss.item())
 
             if args.wandb:
@@ -245,11 +271,9 @@ def test(
     model.eval()
     criterion.eval()
     with torch.no_grad():
-        for x, y, _ in pbar:
-            out = model(x.to(args.device))
-
-            # loss = criterion(out, y.to(args.device))
-            loss = criterion(*out)
+        for emg, stimulus, _ in pbar:
+            out = model(emg.to(args.device))
+            loss = criterion(*out, stimulus.to(args.device))
             losses.append(loss.item())
 
             pbar.set_postfix({"loss": np.mean(losses)})

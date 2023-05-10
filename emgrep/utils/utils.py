@@ -50,12 +50,12 @@ def setup_logging(args: argparse.Namespace):
     )
 
     # Suppress logging from other modules
-    # logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
     if args.wandb:
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         wandb.init(
+            entity="sjohn-eth",
             project="emgrep",
             name=f"{args.positive_mode}_{args.val_idx}_{args.test_idx}_{timestamp}",
             config=vars(args),
