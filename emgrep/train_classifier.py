@@ -46,7 +46,7 @@ class LinearClassificationHead(torch.nn.Module):
 
 
 class MLPClassificationHead(torch.nn.Module):
-    """Architectural functionality for logistic regression."""
+    """Architectural functionality for MLP classifier on block encodings."""
 
     def __init__(self, input_size: int, output_size: int):
         """Initializes the Classification Head.
@@ -61,7 +61,6 @@ class MLPClassificationHead(torch.nn.Module):
             torch.nn.Dropout(0.1),
             torch.nn.ReLU(),
             torch.nn.Linear(input_size, output_size),
-            torch.nn.Dropout(0.1),
         )
 
     def forward(self, x: torch.tensor):
@@ -131,7 +130,16 @@ class DownstreamTuner:
         """
         self.n_classes = n_classes
         self.encoding_size = encoding_size
-        self.head = GRUClassificationHead(encoding_size, n_classes)
+
+        if args.classifier_type == "linear":
+            self.head = LinearClassificationHead(encoding_size, n_classes)
+        elif args.classifier_type == "MLP":
+            self.head = MLPClassificationHead(encoding_size, n_classes)
+        elif args.classifier_type == "GRU":
+            self.head = GRUClassificationHead(encoding_size, n_classes)
+        else:
+            raise NotImplementedError("Unknown classifier: {}".format(args.classifier))
+
         self.lr = lr
         self.epochs = epochs
         self.device = args.device

@@ -35,8 +35,18 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     # Initialize
     assert args.encoder_dim == args.ar_dim, "Encoder and AR dimensions must be the same for now."
 
-    encoder = CPCEncoder(in_channels=16, hidden_dim=args.encoder_dim)
-    ar = CPCAR(dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers)
+    encoder = CPCEncoder(
+        in_channels=16,
+        hidden_dim=args.encoder_dim,
+        conv_type=args.cpc_conv_type,
+        backbone_type=args.cpc_backbone,
+    )
+    ar = CPCAR(
+        dimEncoded=args.encoder_dim,
+        dimOutput=args.ar_dim,
+        numLayers=args.ar_layers,
+        model=args.ar_model,
+    )
     cpc_model = CPCModel(encoder=encoder, ar=ar)
     criterion = CPCCriterion(k=args.cpc_k, zDim=args.encoder_dim, cDim=args.ar_dim)
 
@@ -51,7 +61,7 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     # # TODO: parametrize shape
     summary(encoder, (args.batch_size, 2, 10, 300, 16))
     # logging.info("AR head")
-    summary(ar, (args.batch_size, 1, 10, args.encoder_dim))
+    # summary(ar, (args.batch_size, 1, 10, args.encoder_dim))
 
     logging.info("Training the model...")
 

@@ -55,7 +55,15 @@
                 "--normalize",
                 "True",
                 "--preprocessing",
-                "rms"
+                "rms",
+                "--cpc_conv_type",
+                "CAP-CAP",
+                "--cpc_backbone",
+                "MLP",
+                "--ar_model",
+                "attn",
+                "--classifier_type",
+                "MLP",
             ],
         }
     ]

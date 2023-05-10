@@ -54,13 +54,6 @@ def parse_args() -> argparse.Namespace:
         help="Number of sessions to use.",
     )
     parser.add_argument(
-        "--positive_mode",
-        type=str,
-        default="none",
-        choices=["none", "session", "subject", "label"],
-        help="Whether to use self or subject as positive class.",
-    )
-    parser.add_argument(
         "--val_idx",
         type=int,
         default=1,
@@ -120,6 +113,7 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default=None,
         choices=[None, "rms", "savgol", "hilbert"],
+        help="Which preprocessing filter to use",
     )
 
     # MODEL
@@ -128,6 +122,13 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=256,
         help="Dimension of encoder output.",
+    )
+    parser.add_argument(
+        "--ar_model",
+        type=str,
+        default="GRU",
+        choices=["GRU", "attn"],
+        help="Autoregressive model architecture",
     )
     parser.add_argument(
         "--ar_dim",
@@ -142,12 +143,33 @@ def parse_args() -> argparse.Namespace:
         help="Number of layers in autoregressive model.",
     )
     parser.add_argument(
+        "--cpc_backbone",
+        type=str,
+        default="ada_avg",
+        choices=["ada_avg", "MLP", "attn"],  # @TODO implement MLP
+        help="Model to reduce the remaining temporal dimension of block embed after convolutions",
+    )
+    parser.add_argument(
+        "--cpc_conv_type",
+        type=str,
+        default="CAP-CAP",
+        choices=["CAP-CAP", "CCAP"],
+        help="The type of conv blocks to stack for the block embeddings",
+    )
+    # LOSS FUNCTION
+    parser.add_argument(
+        "--positive_mode",
+        type=str,
+        default="none",
+        choices=["none", "session", "subject", "label"],
+        help="Whether to use self or subject as positive class.",
+    )
+    parser.add_argument(
         "--cpc_k",
         type=int,
         default=5,
         help="Number of steps for contrastive prediction.",
     )
-
     # TRAINING CPC MODEL
     parser.add_argument(
         "--epochs_cpc",
@@ -169,6 +191,13 @@ def parse_args() -> argparse.Namespace:
     )
 
     # TRAINING CLASSIFIER
+    parser.add_argument(
+        "--classifier_type",
+        type=str,
+        choices=["linear", "MLP", "GRU"],
+        help="The type of downstream classifier to use.  \
+        GRU operates on sequences of encoded blocks.",
+    )
     parser.add_argument(
         "--epochs_classifier",
         type=int,
