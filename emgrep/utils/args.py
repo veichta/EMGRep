@@ -109,6 +109,19 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Number of workers for dataloader.",
     )
+    # PREPROCESSING
+    parser.add_argument(
+        "--normalize",
+        type=bool,
+        default=True,
+        help="Whether to standardize (per-session).",
+    )
+    parser.add_argument(
+        "--preprocessing",
+        type=str,
+        default=None,
+        choices=[None, "rms", "savgol", "hilbert"],
+    )
 
     # MODEL
     parser.add_argument(

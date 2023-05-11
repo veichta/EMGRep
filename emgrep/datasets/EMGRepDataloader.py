@@ -28,6 +28,8 @@ class EMGRepDataloader:
         block_stride: int = 300,
         batch_size: int = 1,
         num_workers: int = 0,
+        normalize: bool = True,
+        preprocessing: str = "rms",
     ):
         """Initialize the dataloader.
 
@@ -49,6 +51,11 @@ class EMGRepDataloader:
             block_stride (int, optional): Stride of the block in sequence. Defaults to 300.
             batch_size (int, optional): Batch size for the dataloader. Defaults to 1.
             num_workers (int, optional): Number of workers for the dataloader. Defaults to 0.
+            normalize (bool, optional): Whether to standardize features to zero mean
+                and unit variance (as last preprocessing step). Defaults to True.
+            preprocessing (str, optional): What type of preprocessing to apply.
+                Should be one of [None, "rms", "savgol", "hilbert"],
+                defaults to RMS amplitude smoothing
         """
         super().__init__()
         self.data_path = data_path
@@ -62,6 +69,8 @@ class EMGRepDataloader:
         self.block_stride = block_stride
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.normalize = normalize
+        self.preprocessing = preprocessing
 
     def _create_dataset(self, mode="train") -> EMGRepDataset:
         """Create the dataset.
@@ -97,6 +106,8 @@ class EMGRepDataloader:
             seq_stride=self.seq_stride,
             block_len=self.block_len,
             block_stride=self.block_stride,
+            normalize=self.normalize,
+            preprocessing=self.preprocessing,
         )
 
     def get_dataloaders(self) -> Tuple[DataLoader, DataLoader, DataLoader]:
@@ -159,6 +170,8 @@ def get_dataloader(args: Namespace, extract_rep_mode: bool = False) -> Dict[str,
         block_stride=args.block_stride,
         batch_size=args.batch_size_cpc,
         num_workers=args.num_workers,
+        normalize=args.normalize,
+        preprocessing=args.preprocessing,
     )
 
     train_dl, val_dl, test_dl = dl.get_dataloaders()

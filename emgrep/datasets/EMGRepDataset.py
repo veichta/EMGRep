@@ -6,6 +6,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+from emgrep.utils.preprocessing import hilbert_envelope, rms_preprocess, savgol_preprocess
+
 
 class EMGRepDataset(Dataset):
     """Dataset for the EMGRep project."""
@@ -18,6 +20,8 @@ class EMGRepDataset(Dataset):
         seq_stride: int = 3000,
         block_len: int = 300,
         block_stride: int = 300,
+        normalize: bool = True,
+        preprocessing: str = "rms",
     ) -> None:
         """Initialize the dataset.
 
@@ -29,6 +33,11 @@ class EMGRepDataset(Dataset):
             seq_stride (int, optional): Stride of the sequence. Defaults to 3000.
             block_len (int, optional): Length of the block in sequence. Defaults to 300.
             block_stride (int, optional): Stride of the block in sequence. Defaults to 300.
+            normalize (bool, optional): Whether to standardize features to zero mean
+                and unit variance (as last preprocessing step). Defaults to True.
+            preprocessing (str, optional): What type of preprocessing to apply.
+                Should be one of [None, "rms", "savgol", "hilbert"],
+                defaults to RMS amplitude smoothing
         """
         super().__init__()
 
@@ -37,6 +46,8 @@ class EMGRepDataset(Dataset):
         self.seq_stride = seq_stride
         self.block_len = block_len
         self.block_stride = block_stride
+        self.normalize = normalize
+        self.preprocessing = preprocessing
 
         assert self.positive_mode in {
             "none",
@@ -67,6 +78,17 @@ class EMGRepDataset(Dataset):
         for mat_file in mat_files:
             signal = mat_file["emg"]
             label = mat_file["restimulus"]
+
+            if self.preprocessing == "rms":
+                signal = rms_preprocess(signal)
+            elif self.preprocessing == "savgol":
+                signal = savgol_preprocess(signal)
+            elif self.preprocessing == "hilbert":
+                signal = hilbert_envelope(signal)
+
+            if self.normalize:
+                signal -= signal.mean(axis=0)[None, :]
+                signal /= 1e-8 + signal.std(axis=0)[None, :]
 
             idx = 0
             while idx + self.seq_len <= signal.shape[0]:
