@@ -70,7 +70,7 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
 
     # logging.info("Encoder Architecture:")
     # # TODO: parametrize shape
-    # summary(encoder, (args.batch_size, 2, 10, 300, 16))
+    # summary(encoder, (args.batch_size_cpc, 2, 10, 300, 16))
     # logging.info("AR head")
     # summary(ar, (args.batch_size, 1, 10, args.encoder_dim))
 
