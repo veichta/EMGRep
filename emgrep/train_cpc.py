@@ -187,10 +187,14 @@ def train_one_epoch_cpc(
         optimizer.step()
 
         losses.append(loss.item())
-        if args.wandb:
+        last_batch = len(losses) == len(dataloader)
+        if args.wandb and not last_batch:
             wandb.log({"train_loss": loss.item()})
 
         pbar.set_postfix({"loss": np.mean(losses)})
+
+    if args.wandb:
+        wandb.log({"train_loss_epoch": np.mean(losses)})
 
     return {"loss": np.mean(losses)}
 
@@ -228,10 +232,15 @@ def validate_cpc(
             loss = criterion(*out, stimulus.to(args.device))
             losses.append(loss.item())
 
-            if args.wandb:
+            last_batch = len(losses) == len(dataloader)
+            if args.wandb and not last_batch:
                 wandb.log({"val_loss": loss.item()})
 
             pbar.set_postfix({"loss": np.mean(losses)})
+
+    if args.wandb:
+        wandb.log({"val_loss_epoch": np.mean(losses)})
+
     return {"loss": np.mean(losses)}
 
 
