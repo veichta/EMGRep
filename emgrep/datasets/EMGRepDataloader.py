@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from emgrep.datasets.EMGRepDataset import EMGRepDataset
+from emgrep.datasets.EMGRepDataset import EMGRepDatasetEfficient
 from emgrep.utils.io import get_recording
 
 
@@ -72,7 +72,7 @@ class EMGRepDataloader:
         self.normalize = normalize
         self.preprocessing = preprocessing
 
-    def _create_dataset(self, mode="train") -> EMGRepDataset:
+    def _create_dataset(self, mode="train") -> EMGRepDatasetEfficient:
         """Create the dataset.
 
         Args:
@@ -99,7 +99,7 @@ class EMGRepDataloader:
             )
             for subject, day, time in tqdm(data, desc=f"Loading {mode} dataset", ncols=100)
         ]
-        return EMGRepDataset(
+        return EMGRepDatasetEfficient(
             mat_files=mat_files,
             positive_mode=self.positive_mode,
             seq_len=self.seq_len,
