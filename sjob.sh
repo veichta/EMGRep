@@ -1,4 +1,4 @@
-DATA="/cluster/scratch/veichta/nina_db"
+DATA="/cluster/scratch/bieriv/nina_db"
 LR_CPC=2e-4
 AR_DIM=256
 AR_LAYERS=2

@@ -18,7 +18,9 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from emgrep.criterion import CPCCriterion, ExtendedCPCCriterion
+from emgrep.models.autoregressors import LSTMAR, TransformerAR
 from emgrep.models.cpc_model import CPCAR, CPCEncoder, CPCModel
+from emgrep.models.encoders import TCNEncoder
 
 
 def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
@@ -36,8 +38,24 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     # Initialize
     assert args.encoder_dim == args.ar_dim, "Encoder and AR dimensions must be the same for now."
 
-    encoder = CPCEncoder(in_channels=16, hidden_dim=args.encoder_dim)
-    ar = CPCAR(dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers)
+    if args.encoder_type == "cnn":
+        encoder = CPCEncoder(in_channels=16, hidden_dim=args.encoder_dim)
+    elif args.encoder_type == "tcn":
+        encoder = TCNEncoder(in_channels=16, hidden_dim=args.encoder_dim)
+    else:
+        raise NotImplementedError(f"Unknown encoder type {args.encoder_type}")
+
+    if args.ar_model == "gru":
+        ar = CPCAR(dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers)
+    elif args.ar_model == "lstm":
+        ar = LSTMAR(dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers)
+    elif args.ar_model == "trafo":
+        ar = TransformerAR(
+            dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers
+        )
+    else:
+        raise NotImplementedError(f"Unknown autoregressive model {args.ar_model}")
+
     cpc_model = CPCModel(encoder=encoder, ar=ar)
 
     if args.positive_mode == "none":
