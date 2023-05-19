@@ -8,7 +8,7 @@
 #SBATCH --mem-per-cpu=5000
 #SBATCH --gpus=1
 
-#SBATCH --time=05:00:00
+#SBATCH --time=06:00:00
 
 #SBATCH --array=1-5
 
@@ -27,11 +27,16 @@ python main.py \
     --wandb \
     --device cuda \
     --lr_cpc 2e-4 \
-    --encoder_dim 512 \
-    --ar_layers 5 \
-    --ar_dim 512 \
+    --encoder_dim 256 \
+    --ar_layers 2 \
+    --ar_dim 256 \
+    --preprocessing rms \
+    --normalize True \
     --positive_mode none \
-    --split_mode subject \
+    --alpha 0 \
+    --weight_decay_cpc 1e-3 \
+    --optimizer_cpc sgd \
+    --split_mode day \
     --val_idx ${SLURM_ARRAY_TASK_ID} \
     --test_idx $((SLURM_ARRAY_TASK_ID % 5 + 1)) 
 

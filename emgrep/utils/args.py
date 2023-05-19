@@ -119,7 +119,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--preprocessing",
         type=str,
-        default=None,
+        default="rms",
         choices=[None, "rms", "savgol", "hilbert"],
     )
 

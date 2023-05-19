@@ -13,8 +13,8 @@
                 "256",
                 "--ar_dim",
                 "256",
-                // "--n_subjects",
-                // "1",
+                "--n_subjects",
+                "1",
                 // "--n_days",
                 // "3",
                 "--split_mode",
@@ -27,7 +27,10 @@
                 "2e-4",
                 "--positive_mode",
                 "subject",
-                "--debug"
+                "--debug",
+                "--epochs_cpc",
+                "1",
+                "--wandb"
             ]
         },
         {

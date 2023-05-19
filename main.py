@@ -12,8 +12,7 @@ from emgrep.datasets.RepresentationsDataset import RepresentationDataset
 from emgrep.train_classifier import train_classifier
 from emgrep.train_cpc import train_cpc
 from emgrep.utils.utils import cleanup, setup
-
-# from emgrep.visualizations import visualize_embeddings
+from emgrep.visualizations import visualize_embeddings
 
 
 def main(args: Namespace):
@@ -41,7 +40,7 @@ def main(args: Namespace):
     train_classifier(representations, pred_block=-1, args=args)
 
     # TODO: Visualize representations
-    # visualize_embeddings(representations, args)
+    visualize_embeddings(representations, args)
 
     end = time.time()
     elapsed = datetime.timedelta(seconds=end - start)
