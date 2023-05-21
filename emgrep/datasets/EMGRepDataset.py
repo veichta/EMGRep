@@ -331,7 +331,7 @@ class EMGRepDatasetEfficient(Dataset):
             is_same_session &= info_start["daytesting"] == info_end["daytesting"]
             is_same_session &= info_start["time"] == info_end["time"]
 
-            if is_same_session:
+            if not is_same_session:
                 idx += self.seq_stride
                 continue
 
@@ -479,7 +479,7 @@ class EMGRepDatasetEfficient(Dataset):
         else:
             emg = np.expand_dims(emg_blocks, 0)
             stimulus = np.expand_dims(stimulus_blocks, 0)
-            info = np.expand_dims(info, 0)
+            info = np.expand_dims(info_dict, 0)
 
         info = np.array([list(i.values()) for i in info])
 
