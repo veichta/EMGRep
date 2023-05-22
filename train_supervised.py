@@ -340,7 +340,7 @@ def main(args: Namespace):
 
     # train
     metrics: Dict[str, List] = {"train": [], "val": [], "test": []}
-    for epoch in range(2, 1 + args.epochs_cpc):
+    for epoch in range(1, 1 + args.epochs_cpc):
         metrics["train"].append(train_one_epoch(model, train_dl, criterion, optimizer, epoch, args))
         metrics["val"].append(validate(model, val_dl, criterion, epoch, args))
 
