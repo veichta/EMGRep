@@ -13,6 +13,7 @@ import numpy as np
 import torch
 import wandb
 from torch.utils.data import DataLoader
+from torchinfo import summary
 
 # from torchinfo import summary
 from tqdm import tqdm
@@ -41,9 +42,9 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     if args.encoder_type == "cnn":
         encoder = CPCEncoder(in_channels=16, hidden_dim=args.encoder_dim)
     elif args.encoder_type == "tcn":
-        encoder = TCNEncoder(in_channels=16, hidden_dim=args.encoder_dim)
+        encoder = TCNEncoder(in_channels=16, block_len=args.block_len, hidden_dim=args.encoder_dim)
     else:
-        raise NotImplementedError(f"Unknown encoder type {args.encoder_type}")
+        raise ValueError(f"Unknown encoder type {args.encoder_type}")
 
     if args.ar_model == "gru":
         ar = CPCAR(dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers)
@@ -54,7 +55,7 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
             dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers
         )
     else:
-        raise NotImplementedError(f"Unknown autoregressive model {args.ar_model}")
+        raise ValueError(f"Unknown autoregressive model {args.ar_model}")
 
     cpc_model = CPCModel(encoder=encoder, ar=ar)
 
@@ -76,11 +77,20 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
         wandb.watch(cpc_model, log_freq=100)
         wandb.watch(criterion, log_freq=100)
 
-    # logging.info("Encoder Architecture:")
-    # # TODO: parametrize shape
-    # summary(encoder, (args.batch_size, 1, 10, 300, 16))
-    # logging.info("AR head")
-    # summary(ar, (args.batch_size, 1, 10, 256))
+    if args.debug:
+        # try:
+        logging.debug("Encoder summary: ---------------------------------")
+        summary(
+            encoder,
+            (args.batch_size_cpc, 2, int(args.seq_len / args.block_len), args.block_len, 16),
+        )
+        logging.debug("AR summary: --------------------------------------")
+        summary(
+            ar,
+            (args.batch_size_cpc, 2, int(args.seq_len / args.block_len), args.encoder_dim),
+        )
+    # except:
+    #    print("Failed to print summaries")
 
     logging.info("Training the model...")
 

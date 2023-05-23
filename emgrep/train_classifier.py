@@ -15,8 +15,8 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 
-class LinearClassificationHead(nn.Module):
-    """Architectural functionality for logistic regression."""
+class MLPClassificationHead(nn.Module):
+    """Architectural functionality for a MLP clasifier."""
 
     def __init__(self, input_size: int, hidden_size: int, output_size: int):
         """Initializes the Classification Head.
@@ -27,7 +27,7 @@ class LinearClassificationHead(nn.Module):
             output_size (int): Output size.
 
         """
-        super(LinearClassificationHead, self).__init__()
+        super(MLPClassificationHead, self).__init__()
         self.ffn = nn.Sequential(
             nn.Linear(input_size, hidden_size),
             nn.ReLU(),
@@ -43,6 +43,32 @@ class LinearClassificationHead(nn.Module):
             x (torch.tensor): Input tensor.
         """
         out = self.ffn(x)
+        out = self.softmax(out)
+        return out
+
+
+class LinearClassificationHead(nn.Module):
+    """Architectural functionality for logistic regression."""
+
+    def __init__(self, input_size: int, output_size: int):
+        """Initializes the Classification Head.
+
+        Args:
+            input_size (int): Input size.
+            output_size (int): Output size.
+
+        """
+        super(LinearClassificationHead, self).__init__()
+        self.project = nn.Linear(input_size, output_size)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x: torch.tensor):
+        """Forward pass.
+
+        Args:
+            x (torch.tensor): Input tensor.
+        """
+        out = self.project(x)
         out = self.softmax(out)
         return out
 
@@ -73,9 +99,14 @@ def train_classifier(representations: Dict[str, Dataset], pred_block: int, args:
     )
 
     # define model
-    model = LinearClassificationHead(
-        input_size=args.ar_dim, hidden_size=4 * args.ar_dim, output_size=n_classes
-    )
+    if args.classifier_type == "mlp":
+        model = MLPClassificationHead(
+            input_size=args.ar_dim, hidden_size=4 * args.ar_dim, output_size=n_classes
+        )
+    elif args.classifier_type == "linear":
+        model = LinearClassificationHead(input_size=args.ar_dim, output_size=n_classes)
+    else:
+        raise ValueError(f"Unknown classifier type: {args.classifier_type}")
 
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()

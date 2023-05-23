@@ -6,28 +6,28 @@ import torch.nn as nn
 
 
 class TCNEncoder(nn.Module):
-    """Dummy encoder for the baseline model."""
+    """TCN encoder like the one im the thesis."""
 
-    def __init__(self, block_len: int, in_channels: int = 16, hidden_dim: int = 128, n_mlp=-1):
+    def __init__(
+        self, block_len: int, in_channels: int = 16, hidden_dim: int = 128, max_channels=64
+    ):
         """Initialize the dummy encoder.
 
         Args:
-            seq_len (int, optional): Length of input sequence to scale receptive field to.
+            block_len (int): Length of input sequence to scale receptive field to.
             in_channels (int, optional): Number of input channels. Defaults to 16.
             hidden_dim (int, optional): Number of output channels. Defaults to 128.
+            max_channels (int, optional): Maximum number of channels in TCN. Defaults to 64.
         """
         super(TCNEncoder, self).__init__()
         max_power = int(math.ceil(math.log(block_len, 2)))
-        num_channels = [min(256, 2**f) for f in range(5, max_power + 1)]
+        num_channels = [min(max_channels, 2**f) for f in range(5, max_power + 1)]
         print("CHANNELS: ", num_channels)
-        if n_mlp == -1:
-            n_mlp = hidden_dim
         self.tcn_module = TemporalConvNet(in_channels, num_channels)
         self.to_out = torch.nn.Sequential(
             *[
                 # torch.nn.BatchNorm1d(num_channels[-1]),
                 torch.nn.Linear(num_channels[-1], hidden_dim),
-                torch.nn.LayerNorm(hidden_dim)
                 # torch.nn.ELU(),
                 # torch.nn.Dropout(0.4),
                 # torch.nn.BatchNorm1d(n_mlp),
@@ -48,16 +48,29 @@ class TCNEncoder(nn.Module):
 
 
 class Chomp1d(nn.Module):
+    """Makes the convolution causal.
+
+    source: https://github.com/locuslab/TCN/blob/master/TCN/tcn.py
+    """
+
     def __init__(self, chomp_size):
+        """Initialize the module."""
         super(Chomp1d, self).__init__()
         self.chomp_size = chomp_size
 
     def forward(self, x):
+        """Forward pass."""
         return x[:, :, : -self.chomp_size].contiguous()
 
 
 class TemporalBlock(nn.Module):
+    """A TCN residual block.
+
+    source: https://github.com/locuslab/TCN/blob/master/TCN/tcn.py
+    """
+
     def __init__(self, n_inputs, n_outputs, kernel_size, stride, dilation, padding, dropout=0.2):
+        """Initialize the module."""
         super(TemporalBlock, self).__init__()
         self.conv1 = nn.Conv1d(
             n_inputs, n_outputs, kernel_size, stride=stride, padding=padding, dilation=dilation
@@ -88,19 +101,27 @@ class TemporalBlock(nn.Module):
         # self.init_weights()
 
     def init_weights(self):
+        """Initialize the weights."""
         self.conv1.weight.data.normal_(0, 0.01)
         self.conv2.weight.data.normal_(0, 0.01)
         if self.downsample is not None:
             self.downsample.weight.data.normal_(0, 0.01)
 
     def forward(self, x):
+        """Forward pass."""
         out = self.net(x)
         res = x if self.downsample is None else self.downsample(x)
         return self.relu(out + res)
 
 
 class TemporalConvNet(nn.Module):
+    """TCN module.
+
+    source: https://github.com/locuslab/TCN/blob/master/TCN/tcn.py
+    """
+
     def __init__(self, num_inputs, num_channels, kernel_size=2, dropout=0.2):
+        """Initialize the module."""
         super(TemporalConvNet, self).__init__()
         layers = []
         num_levels = len(num_channels)
@@ -123,4 +144,5 @@ class TemporalConvNet(nn.Module):
         self.network = nn.Sequential(*layers)
 
     def forward(self, x):
+        """Forward pass."""
         return self.network(x)

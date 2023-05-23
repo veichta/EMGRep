@@ -133,7 +133,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--encoder_type",
         type=str,
-        default="cnn",
+        default="tcn",
         choices=["cnn", "tcn", "transformer"],
         help="Type of autoregressive model to use.",
     )
@@ -222,6 +222,13 @@ def parse_args() -> argparse.Namespace:
     )
 
     # TRAINING CLASSIFIER
+    parser.add_argument(
+        "--classifier_type",
+        type=str,
+        default="mlp",
+        choices=["mlp", "linear"],
+        help="Type of classifier to use.",
+    )
     parser.add_argument(
         "--epochs_classifier",
         type=int,
