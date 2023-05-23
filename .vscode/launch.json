@@ -46,7 +46,7 @@
                 "--n_subjects",
                 "1",
                 "--n_days",
-                "3",
+                "5",
                 "--split_mode",
                 "day",
                 "--val_idx",
@@ -57,7 +57,9 @@
                 "2e-4",
                 "--positive_mode",
                 "subject",
-                "--debug"
+                "--debug",
+                "--epochs_cpc",
+                "1",
             ]
         },
         {
