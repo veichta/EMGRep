@@ -49,7 +49,7 @@
                 "--n_subjects",
                 "1",
                 "--n_days",
-                "3",
+                "5",
                 "--split_mode",
                 "day",
                 "--val_idx",
@@ -60,7 +60,9 @@
                 "2e-4",
                 "--positive_mode",
                 "subject",
-                "--debug"
+                "--debug",
+                "--epochs_cpc",
+                "1",
             ]
         },
         {
@@ -82,6 +84,46 @@
                 "3",
                 "--n_times",
                 "1"
+            ]
+        },
+        {
+            "name": "Valentin main.py",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "justMyCode": true,
+            "args": [
+                "--num_workers",
+                "0",
+                "--encoder_dim",
+                "64",
+                "--ar_dim",
+                "64",
+                "--n_subjects",
+                "1",
+                "--n_days",
+                "3",
+                "--split_mode",
+                "day",
+                "--val_idx",
+                "1",
+                "--test_idx",
+                "2",
+                "--lr_cpc",
+                "2e-4",
+                "--epochs_cpc",
+                "3",
+                "--epochs_classifier",
+                "3",
+                "--positive_mode",
+                "subject",
+                "--ar_model",
+                "trafo",
+                "--encoder_type",
+                "tcn",
+                "--classifier_type",
+                "mlp",
+                "--debug",
             ]
         }
     ]

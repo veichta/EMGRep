@@ -131,11 +131,26 @@ def parse_args() -> argparse.Namespace:
         help="Dimension of encoder output.",
     )
     parser.add_argument(
+        "--encoder_type",
+        type=str,
+        default="tcn",
+        choices=["cnn", "tcn", "transformer"],
+        help="Type of autoregressive model to use.",
+    )
+    parser.add_argument(
         "--ar_dim",
         type=int,
         default=256,
         help="Dimension of autoregressive model output.",
     )
+    parser.add_argument(
+        "--ar_model",
+        type=str,
+        default="gru",
+        choices=["gru", "lstm", "trafo"],
+        help="Type of autoregressive model to use.",
+    )
+
     parser.add_argument(
         "--ar_layers",
         type=int,
@@ -207,6 +222,13 @@ def parse_args() -> argparse.Namespace:
     )
 
     # TRAINING CLASSIFIER
+    parser.add_argument(
+        "--classifier_type",
+        type=str,
+        default="mlp",
+        choices=["mlp", "linear"],
+        help="Type of classifier to use.",
+    )
     parser.add_argument(
         "--epochs_classifier",
         type=int,

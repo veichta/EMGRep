@@ -13,12 +13,15 @@ import numpy as np
 import torch
 import wandb
 from torch.utils.data import DataLoader
+from torchinfo import summary
 
 # from torchinfo import summary
 from tqdm import tqdm
 
 from emgrep.criterion import CPCCriterion, ExtendedCPCCriterion
+from emgrep.models.autoregressors import LSTMAR, TransformerAR
 from emgrep.models.cpc_model import CPCAR, CPCEncoder, CPCModel
+from emgrep.models.encoders import TCNEncoder
 
 
 def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
@@ -36,8 +39,24 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     # Initialize
     assert args.encoder_dim == args.ar_dim, "Encoder and AR dimensions must be the same for now."
 
-    encoder = CPCEncoder(in_channels=16, hidden_dim=args.encoder_dim)
-    ar = CPCAR(dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers)
+    if args.encoder_type == "cnn":
+        encoder = CPCEncoder(in_channels=16, hidden_dim=args.encoder_dim)
+    elif args.encoder_type == "tcn":
+        encoder = TCNEncoder(in_channels=16, block_len=args.block_len, hidden_dim=args.encoder_dim)
+    else:
+        raise ValueError(f"Unknown encoder type {args.encoder_type}")
+
+    if args.ar_model == "gru":
+        ar = CPCAR(dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers)
+    elif args.ar_model == "lstm":
+        ar = LSTMAR(dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers)
+    elif args.ar_model == "trafo":
+        ar = TransformerAR(
+            dimEncoded=args.encoder_dim, dimOutput=args.ar_dim, numLayers=args.ar_layers
+        )
+    else:
+        raise ValueError(f"Unknown autoregressive model {args.ar_model}")
+
     cpc_model = CPCModel(encoder=encoder, ar=ar)
 
     if args.positive_mode == "none":
@@ -58,11 +77,20 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
         wandb.watch(cpc_model, log_freq=100)
         wandb.watch(criterion, log_freq=100)
 
-    # logging.info("Encoder Architecture:")
-    # # TODO: parametrize shape
-    # summary(encoder, (args.batch_size, 1, 10, 300, 16))
-    # logging.info("AR head")
-    # summary(ar, (args.batch_size, 1, 10, 256))
+    if args.debug:
+        # try:
+        logging.debug("Encoder summary: ---------------------------------")
+        summary(
+            encoder,
+            (args.batch_size_cpc, 2, int(args.seq_len / args.block_len), args.block_len, 16),
+        )
+        logging.debug("AR summary: --------------------------------------")
+        summary(
+            ar,
+            (args.batch_size_cpc, 2, int(args.seq_len / args.block_len), args.encoder_dim),
+        )
+    # except:
+    #    print("Failed to print summaries")
 
     logging.info("Training the model...")
 
@@ -187,10 +215,14 @@ def train_one_epoch_cpc(
         optimizer.step()
 
         losses.append(loss.item())
-        if args.wandb:
+        last_batch = len(losses) == len(dataloader)
+        if args.wandb and not last_batch:
             wandb.log({"train_loss": loss.item()})
 
         pbar.set_postfix({"loss": np.mean(losses)})
+
+    if args.wandb:
+        wandb.log({"train_loss_epoch": np.mean(losses)})
 
     return {"loss": np.mean(losses)}
 
@@ -228,10 +260,15 @@ def validate_cpc(
             loss = criterion(*out, stimulus.to(args.device))
             losses.append(loss.item())
 
-            if args.wandb:
+            last_batch = len(losses) == len(dataloader)
+            if args.wandb and not last_batch:
                 wandb.log({"val_loss": loss.item()})
 
             pbar.set_postfix({"loss": np.mean(losses)})
+
+    if args.wandb:
+        wandb.log({"val_loss_epoch": np.mean(losses)})
+
     return {"loss": np.mean(losses)}
 
 

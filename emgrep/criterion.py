@@ -121,4 +121,4 @@ class ExtendedCPCCriterion(nn.Module):
 
         ext_loss = self.infonce(anchor_prop[condition], positive_prop[condition])
 
-        return self.canonical_criterion(z, c) + self.alpha * ext_loss
+        return (1 - self.alpha) * self.canonical_criterion(z, c) + self.alpha * ext_loss
