@@ -115,11 +115,11 @@
                 "--positive_mode",
                 "subject",
                 "--ar_model",
-                "trafo",
+                "lstm",
                 "--encoder_type",
-                "tcn",
+                "cnn",
                 "--classifier_type",
-                "mlp",
+                "linear",
                 "--debug",
             ]
         }

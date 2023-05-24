@@ -133,7 +133,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--encoder_type",
         type=str,
-        default="tcn",
+        default="cnn",
         choices=["cnn", "tcn", "transformer"],
         help="Type of autoregressive model to use.",
     )

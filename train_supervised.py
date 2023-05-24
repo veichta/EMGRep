@@ -315,7 +315,7 @@ def main(args: Namespace):
         seq_len=args.seq_len,
         seq_stride=args.block_len,  # predict label of last block
         block_len=args.block_len,
-        block_stride=args.block_stride,
+        block_stride=args.block_len,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
     )

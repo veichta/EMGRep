@@ -37,7 +37,8 @@ def train_cpc(dataloaders: Dict[str, DataLoader], args: Namespace) -> CPCModel:
     start = time.time()
 
     # Initialize
-    assert args.encoder_dim == args.ar_dim, "Encoder and AR dimensions must be the same for now."
+    args.encoder_dim = args.ar_dim
+    # assert args.encoder_dim == args.ar_dim, "Encoder and AR dimensions must be the same for now."
 
     if args.encoder_type == "cnn":
         encoder = CPCEncoder(in_channels=16, hidden_dim=args.encoder_dim)
