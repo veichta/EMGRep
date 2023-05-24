@@ -55,7 +55,7 @@ def setup_logging(args: argparse.Namespace):
     if args.wandb:
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         wandb.init(
-            entity="valebi",
+            entity="sjohn-eth",
             project="emgrep",
             name=f"{args.positive_mode}_{args.val_idx}_{args.test_idx}_{timestamp}",
             config=vars(args),
